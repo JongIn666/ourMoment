@@ -33,6 +33,12 @@ yarn-error.*
 # local env files
 .env*.local
 
+# Django
+backend/.venv/
+backend/db.sqlite3
+backend/**/__pycache__/
+backend/**/*.pyc
+
 # typescript
 *.tsbuildinfo
 

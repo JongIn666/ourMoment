@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import * as Device from 'expo-device';
 import { Platform, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -7,6 +8,7 @@ import { HintRow } from '@/components/hint-row';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { WebBadge } from '@/components/web-badge';
+import { API_URL } from '@/constants/api';
 import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
 
 function getDevMenuHint() {
@@ -29,6 +31,34 @@ function getDevMenuHint() {
 }
 
 export default function HomeScreen() {
+  const [apiStatus, setApiStatus] = useState('checking...');
+
+  useEffect(() => {
+    let isMounted = true;
+
+    fetch(`${API_URL}/api/health/`)
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`);
+        }
+        return response.json();
+      })
+      .then((data: { status?: string; service?: string }) => {
+        if (isMounted) {
+          setApiStatus(`${data.service ?? 'Django'} is ${data.status ?? 'online'}`);
+        }
+      })
+      .catch(() => {
+        if (isMounted) {
+          setApiStatus(`waiting for Django at ${API_URL}`);
+        }
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
   return (
     <ThemedView style={styles.container}>
       <SafeAreaView style={styles.safeArea}>
@@ -53,6 +83,13 @@ export default function HomeScreen() {
             title="Fresh start"
             hint={<ThemedText type="code">npm run reset-project</ThemedText>}
           />
+        </ThemedView>
+
+        <ThemedView type="backgroundElement" style={styles.apiContainer}>
+          <ThemedText type="smallBold">Backend</ThemedText>
+          <ThemedText type="small" themeColor="textSecondary" style={styles.apiStatus}>
+            {apiStatus}
+          </ThemedText>
         </ThemedView>
 
         {Platform.OS === 'web' && <WebBadge />}
@@ -94,5 +131,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.three,
     paddingVertical: Spacing.four,
     borderRadius: Spacing.four,
+  },
+  apiContainer: {
+    alignSelf: 'stretch',
+    gap: Spacing.one,
+    paddingHorizontal: Spacing.three,
+    paddingVertical: Spacing.three,
+    borderRadius: Spacing.four,
+  },
+  apiStatus: {
+    flexShrink: 1,
   },
 });

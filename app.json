@@ -8,9 +8,11 @@
     "scheme": "ourmoment",
     "userInterfaceStyle": "automatic",
     "ios": {
+      "bundleIdentifier": "com.jonginlee.ourmoment",
       "icon": "./assets/expo.icon"
     },
     "android": {
+      "package": "com.jonginlee.ourmoment",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
