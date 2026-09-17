@@ -98,3 +98,13 @@ Or run all checks together:
 ```bash
 make check
 ```
+
+## iOS Troubleshooting
+
+If `pod install` fails with a missing `MacOSX*.sdk`, check the selected Xcode and SDK:
+
+```bash
+make doctor-ios
+```
+
+`make ios` clears `SDKROOT` before running Expo so stale Command Line Tools SDK paths do not break CocoaPods.

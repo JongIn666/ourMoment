@@ -1,4 +1,4 @@
-.PHONY: help install backend start ios android web go migrate check typecheck expo-check django-check clean
+.PHONY: help install backend start ios android web go migrate check typecheck expo-check django-check doctor-ios clean
 
 PYTHON ?= python3.13
 VENV := backend/.venv
@@ -17,6 +17,7 @@ help:
 	@echo "  make go            Start Expo Go fallback"
 	@echo "  make migrate       Run Django migrations"
 	@echo "  make check         Run Expo, TypeScript, and Django checks"
+	@echo "  make doctor-ios    Show selected Xcode and macOS SDK paths"
 	@echo "  make clean         Remove local generated backend files"
 
 install:
@@ -31,7 +32,7 @@ start:
 	npm start
 
 ios:
-	npm run ios
+	unset SDKROOT; npm run ios
 
 android:
 	npm run android
@@ -55,6 +56,19 @@ expo-check:
 
 django-check:
 	$(MANAGE) check
+
+doctor-ios:
+	@echo "Developer directory:"
+	@xcode-select -p
+	@echo ""
+	@echo "Xcode version:"
+	@xcodebuild -version
+	@echo ""
+	@echo "macOS SDK path:"
+	@xcrun --sdk macosx --show-sdk-path
+	@echo ""
+	@echo "SDKROOT environment value:"
+	@printenv SDKROOT || true
 
 clean:
 	rm -f backend/db.sqlite3
