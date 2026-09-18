@@ -35,6 +35,7 @@ yarn-error.*
 
 # Django
 backend/.venv/
+backend/.env
 backend/db.sqlite3
 backend/**/__pycache__/
 backend/**/*.pyc

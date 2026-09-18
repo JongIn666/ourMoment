@@ -3,6 +3,7 @@
 React Native Expo mobile app with a Django backend.
 
 This project uses an Expo development build by default, not Expo Go.
+Django uses PostgreSQL for local development.
 
 ## Get started
 
@@ -10,21 +11,25 @@ This project uses an Expo development build by default, not Expo Go.
 
 - Node.js 22.13.x or newer for Expo SDK 57
 - Python 3.13
+- Docker Desktop
 
 ### Install
 
 ```bash
 make install
+make postgres
 make migrate
 ```
 
 ### Run
 
-Start Django in one terminal:
+Start the backend in one terminal:
 
 ```bash
 make backend
 ```
+
+That starts PostgreSQL first, then runs Django at `http://127.0.0.1:8010`.
 
 Start Expo in another terminal:
 
@@ -69,6 +74,8 @@ The health endpoint is:
 http://127.0.0.1:8010/api/health/
 ```
 
+It checks both Django and the PostgreSQL connection.
+
 The Expo app defaults to `http://127.0.0.1:8010` on iOS/web and `http://10.0.2.2:8010` on Android emulator. Override it with `EXPO_PUBLIC_API_URL` when needed:
 
 ```bash
@@ -78,6 +85,18 @@ backend/.venv/bin/python backend/manage.py runserver 0.0.0.0:8010
 # Terminal 2
 EXPO_PUBLIC_API_URL=http://YOUR_LAN_IP:8010 npm start
 ```
+
+### Database
+
+PostgreSQL runs in Docker on your Mac at `127.0.0.1:55432` and inside Docker at `5432`.
+
+```bash
+make postgres
+make migrate
+make postgres-shell
+```
+
+The Django connection settings live in `backend/.env`. Use `backend/.env.example` as the template for a fresh machine.
 
 ## Project Structure
 

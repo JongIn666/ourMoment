@@ -1,4 +1,4 @@
-.PHONY: help install backend start ios android web go migrate check typecheck expo-check django-check doctor-ios clean
+.PHONY: help install postgres postgres-down postgres-logs postgres-shell backend django start ios android web go migrate check typecheck expo-check django-check db-check doctor-ios clean
 
 PYTHON ?= python3.13
 VENV := backend/.venv
@@ -9,14 +9,19 @@ help:
 	@echo "ourMoment commands"
 	@echo ""
 	@echo "  make install       Install npm and Django dependencies"
-	@echo "  make backend       Run Django on http://127.0.0.1:8010"
+	@echo "  make postgres      Start PostgreSQL in Docker"
+	@echo "  make postgres-down Stop PostgreSQL"
+	@echo "  make postgres-logs Tail PostgreSQL logs"
+	@echo "  make postgres-shell Open psql inside the PostgreSQL container"
+	@echo "  make backend       Start PostgreSQL, then run Django on http://127.0.0.1:8010"
+	@echo "  make django        Run Django without starting PostgreSQL"
 	@echo "  make start         Start Expo for the development build"
 	@echo "  make ios           Build/install iOS development build"
 	@echo "  make android       Build/install Android development build"
 	@echo "  make web           Start Expo web"
 	@echo "  make go            Start Expo Go fallback"
 	@echo "  make migrate       Run Django migrations"
-	@echo "  make check         Run Expo, TypeScript, and Django checks"
+	@echo "  make check         Run Expo, TypeScript, Django, and database checks"
 	@echo "  make doctor-ios    Show selected Xcode and macOS SDK paths"
 	@echo "  make clean         Remove local generated backend files"
 
@@ -25,7 +30,22 @@ install:
 	$(PYTHON) -m venv $(VENV)
 	$(PIP) install -r backend/requirements.txt
 
-backend:
+postgres:
+	docker compose up -d postgres
+
+postgres-down:
+	docker compose down
+
+postgres-logs:
+	docker compose logs -f postgres
+
+postgres-shell:
+	docker compose exec postgres psql -U ourmoment -d ourmoment
+
+backend: postgres
+	npm run backend
+
+django:
 	npm run backend
 
 start:
@@ -46,7 +66,7 @@ go:
 migrate:
 	$(MANAGE) migrate
 
-check: expo-check typecheck django-check
+check: expo-check typecheck django-check db-check
 
 typecheck:
 	npx tsc --noEmit
@@ -56,6 +76,9 @@ expo-check:
 
 django-check:
 	$(MANAGE) check
+
+db-check:
+	$(MANAGE) migrate --check
 
 doctor-ios:
 	@echo "Developer directory:"

@@ -43,9 +43,10 @@ export default function HomeScreen() {
         }
         return response.json();
       })
-      .then((data: { status?: string; service?: string }) => {
+      .then((data: { status?: string; service?: string; database?: string }) => {
         if (isMounted) {
-          setApiStatus(`${data.service ?? 'Django'} is ${data.status ?? 'online'}`);
+          const database = data.database === 'postgresql' ? ' + PostgreSQL' : '';
+          setApiStatus(`${data.service ?? 'Django'}${database} is ${data.status ?? 'online'}`);
         }
       })
       .catch(() => {

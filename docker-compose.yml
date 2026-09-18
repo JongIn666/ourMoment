@@ -1,0 +1,21 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: ourmoment-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ourmoment
+      POSTGRES_USER: ourmoment
+      POSTGRES_PASSWORD: ourmoment_dev_password
+    ports:
+      - "55432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ourmoment -d ourmoment"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  postgres_data:
