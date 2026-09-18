@@ -1,6 +1,6 @@
 .PHONY: help install postgres postgres-down postgres-logs postgres-shell backend django start ios android web go migrate check typecheck expo-check django-check db-check doctor-ios clean
 
-PYTHON ?= python3.13
+PYTHON ?= python3.14
 VENV := backend/.venv
 PIP := $(VENV)/bin/python -m pip
 MANAGE := $(VENV)/bin/python backend/manage.py
