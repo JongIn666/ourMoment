@@ -115,6 +115,18 @@ To start Expo through the tunnel:
 make tunnel
 ```
 
+### Database
+
+PostgreSQL runs in Docker on your Mac at `127.0.0.1:55432` and inside Docker at `5432`.
+
+```bash
+make postgres
+make migrate
+make postgres-shell
+```
+
+The Django connection settings live in `backend/.env`. Use `backend/.env.example` as the template for a fresh machine.
+
 ## Project Structure
 
 - `src/`: Expo Router app and React Native code
