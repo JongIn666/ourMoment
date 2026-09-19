@@ -30,12 +30,15 @@
   },
   "devDependencies": {
     "@types/react": "~19.2.2",
+    "dotenv-cli": "^11.0.0",
     "typescript": "~6.0.3"
   },
   "scripts": {
     "start": "expo start --dev-client",
-    "start:go": "expo start",
+    "start:go": "expo start --go",
+    "start:tunnel": "dotenv -e .env.local -- bash -c 'EXPO_PUBLIC_API_URL=https://$NGROK_API_DOMAIN expo start --tunnel'",
     "backend": "cd backend && ./.venv/bin/python manage.py runserver 127.0.0.1:8010",
+    "ngrok": "dotenv -e .env.local -- bash -c 'ngrok http 8010 --host-header=rewrite --domain=$NGROK_API_DOMAIN'",
     "reset-project": "node ./scripts/reset-project.js",
     "android": "expo run:android",
     "ios": "expo run:ios",

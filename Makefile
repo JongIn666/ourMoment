@@ -48,6 +48,9 @@ backend: postgres
 django:
 	npm run backend
 
+ngrok:
+	npm run ngrok
+
 start:
 	npm start
 
@@ -62,6 +65,9 @@ web:
 
 go:
 	npm run start:go
+
+tunnel:
+	npm run start:tunnel
 
 migrate:
 	$(MANAGE) migrate

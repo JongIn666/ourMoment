@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
 import * as Device from 'expo-device';
+import { useEffect, useState } from 'react';
 import { Platform, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -36,7 +36,11 @@ export default function HomeScreen() {
   useEffect(() => {
     let isMounted = true;
 
-    fetch(`${API_URL}/api/health/`)
+    fetch(`${API_URL}/api/health/`, {
+      "headers": {
+        "ngrok-skip-browser-warning": "true"
+      }
+    })
       .then((response) => {
         if (!response.ok) {
           throw new Error(`HTTP ${response.status}`);

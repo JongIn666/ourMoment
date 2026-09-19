@@ -13,6 +13,8 @@ Django uses PostgreSQL for local development.
 - Python 3.13
 - Docker Desktop
 
+This project was made with Bash in mind. It is recommended to run it on Mac and Linux (or Windows Subsystem for Linux).
+
 ### Install
 
 ```bash
@@ -86,17 +88,32 @@ backend/.venv/bin/python backend/manage.py runserver 0.0.0.0:8010
 EXPO_PUBLIC_API_URL=http://YOUR_LAN_IP:8010 npm start
 ```
 
-### Database
+### Tunneling
+Tunneling is to be used when network restrictions and firewalls make access over the local network unfeasible. It allows both the frontend and the backend to be accessible over the public Internet.
 
-PostgreSQL runs in Docker on your Mac at `127.0.0.1:55432` and inside Docker at `5432`.
+Requirements:
+- `@expo/ngrok` package, which can be installed via `npm i -g @expo/ngrok`
+- Ngrok, via Ngrok Agent or `npm install ngrok -g`
+- A registered Expo Go account
+- A registered Ngrok account
 
-```bash
-make postgres
-make migrate
-make postgres-shell
+First, find your free fixed domain at [Domains](https://dashboard.ngrok.com/domains) in the Ngrok dashboard.
+
+Then, create the file `.env.local` and input the following:
+
+```
+NGROK_API_DOMAIN=[paste your domain here]
 ```
 
-The Django connection settings live in `backend/.env`. Use `backend/.env.example` as the template for a fresh machine.
+To route the backend through Ngrok:
+```bash
+make ngrok
+```
+
+To start Expo through the tunnel:
+```bash
+make tunnel
+```
 
 ## Project Structure
 
