@@ -1,6 +1,10 @@
 import { API_URL } from '@/constants/api';
 import { useEffect } from 'react';
-import { Image, Pressable, Text, View } from 'react-native';
+import { Image, StyleSheet, View } from 'react-native';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+
+import { LoginButton } from '@/components/login-button';
+import { SafeAreaViewThemed } from '@/components/safe-area-themed';
 
 const App = () => {
     useEffect(() => {
@@ -35,70 +39,41 @@ const App = () => {
       }, []);
 
     return (
-        <View
-            style={{
-                backgroundColor: '#E6F0D0',
-                flex: 1,
-                justifyContent: 'center',
-                alignItems: 'center',
-                gap: 84
-            }}
-        >
-            <View>
-                <Image
-                    source={require('@/assets/images/logo.png')}
-                    style={{width: 282, height: 333}}
-                />
-            </View>
+        <SafeAreaProvider>
+            <SafeAreaViewThemed style={styles.container}>
+                <View>
+                    <Image
+                        source={require('@/assets/images/logo.png')}
+                        style={{width: 282, height: 333}}
+                    />
+                </View>
 
-            <View
-                style={{
-                    gap: 24
-                }}
-            >
-                <Pressable
-                    style={{
-                        backgroundColor: '#90C400',
-                        borderColor: '#5E8000',
-                        borderWidth: 2,
-                        padding: 10,
-                        width: 248
-                    }}
-                >
-                    <Text
-                        style={{
-                            color: '#fff',
-                            fontSize: 32,
-                            textAlign: 'center',
-                            fontFamily: 'Noto Sans'
-                        }}
-                    >
-                        Login
-                    </Text>
-                </Pressable>
+                <View style={styles.loginButtons}>
+                    <LoginButton
+                        text="Login"
+                        type="primary"
+                        labelStyle={{fontSize: 32}}
+                    />
 
-                <Pressable
-                    style={{
-                        borderColor: '#90C400',
-                        borderWidth: 2,
-                        padding: 14,
-                        width: 248
-                    }}
-                >
-                    <Text
-                        style={{
-                            color: '#90C400',
-                            fontSize: 24,
-                            textAlign: 'center',
-                            fontFamily: 'Noto Sans'
-                        }}
-                    >
-                        Create account
-                    </Text>
-                </Pressable>
-            </View>
-        </View>
+                    <LoginButton
+                        text="Create account" 
+                        type="secondary"
+                    />
+                </View>
+            </SafeAreaViewThemed>
+        </SafeAreaProvider>
     );
 };
 
 export default App;
+
+const styles = StyleSheet.create({
+  container: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 84
+  },
+  loginButtons: {
+    gap: 24
+  }
+});
