@@ -7,7 +7,7 @@ export type LoginButtonProps = PressableProps & {
   labelStyle?: StyleProp<TextStyle>
 };
 
-export function LoginButton({ text, type, style, labelStyle }: LoginButtonProps) {
+export function LoginButton({ text, type, style, labelStyle, ...rest }: LoginButtonProps) {
     return (
         <Pressable
             style={[
@@ -15,6 +15,7 @@ export function LoginButton({ text, type, style, labelStyle }: LoginButtonProps)
               type == "primary" ? styles.primaryButton: styles.secondaryButton,
               style
             ]}
+            {...rest}
         >
             <Text
                 style={[

@@ -1,4 +1,5 @@
 import { API_URL } from '@/constants/api';
+import { useRouter } from 'expo-router';
 import { useEffect } from 'react';
 import { Image, StyleSheet, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -6,7 +7,9 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { LoginButton } from '@/components/login-button';
 import { SafeAreaViewThemed } from '@/components/safe-area-themed';
 
-const App = () => {
+export default function LoggedOut() {
+    const router = useRouter(); 
+
     useEffect(() => {
         let isMounted = true;
     
@@ -53,6 +56,7 @@ const App = () => {
                         text="Login"
                         type="primary"
                         labelStyle={{fontSize: 32}}
+                        onPress={() => router.navigate('/login')}
                     />
 
                     <LoginButton
@@ -63,14 +67,11 @@ const App = () => {
             </SafeAreaViewThemed>
         </SafeAreaProvider>
     );
-};
-
-export default App;
+}
 
 const styles = StyleSheet.create({
   container: {
     justifyContent: 'center',
-    alignItems: 'center',
     gap: 84
   },
   loginButtons: {

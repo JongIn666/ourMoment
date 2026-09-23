@@ -1,4 +1,4 @@
-import { Colors } from '@/constants/theme';
+import { Colors, Font } from '@/constants/theme';
 import { StyleSheet, ViewProps } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -13,6 +13,9 @@ export function SafeAreaViewThemed({ style, ...rest }: ThemedProps) {
 const styles = StyleSheet.create({
     container: {
         backgroundColor: Colors.background,
-        flex: 1
+        fontFamily: Font,
+        flex: 1,
+        alignItems: 'center',
+        padding: 14
     }
 });

@@ -6,12 +6,21 @@ const colorPalette = {
     darkLime: '#5E8000',
     white: '#fff',
     lightGray: '#E6E6E6',
-    gray: '#D9D9D9',
+    midLightGray: '#D9D9D9',
+    midDarkGray: '#A1A1A1',
     darkGray: '#949494'
 };
 
 export const Colors = {
     background: colorPalette.lightLime,
+    box: {
+        background: colorPalette.white,
+        border: colorPalette.lightGray
+    },
+    interface: {
+        border: colorPalette.midDarkGray,
+        text: colorPalette.darkGray
+    },
     button: {
         primary: {
             color: colorPalette.midLime,
@@ -22,7 +31,8 @@ export const Colors = {
             border: colorPalette.midLime,
             label: colorPalette.midLime
         }
-    }
+    },
+    textLink: colorPalette.darkLime
 } as const;
 
 export const Font = "Noto Sans";
