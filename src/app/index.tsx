@@ -1,150 +1,297 @@
-import * as Device from 'expo-device';
-import { useEffect, useState } from 'react';
-import { Platform, StyleSheet } from 'react-native';
+import { useState } from 'react';
+import {
+  ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  StyleSheet,
+  TextInput,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { AnimatedIcon } from '@/components/animated-icon';
-import { HintRow } from '@/components/hint-row';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { WebBadge } from '@/components/web-badge';
-import { API_URL } from '@/constants/api';
 import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
+import { useAuth } from '@/context/auth';
+import { useTheme } from '@/hooks/use-theme';
 
-function getDevMenuHint() {
-  if (Platform.OS === 'web') {
-    return <ThemedText type="small">use browser devtools</ThemedText>;
-  }
-  if (Device.isDevice) {
-    return (
-      <ThemedText type="small">
-        shake device or press <ThemedText type="code">m</ThemedText> in terminal
-      </ThemedText>
-    );
-  }
-  const shortcut = Platform.OS === 'android' ? 'cmd+m (or ctrl+m)' : 'cmd+d';
-  return (
-    <ThemedText type="small">
-      press <ThemedText type="code">{shortcut}</ThemedText>
-    </ThemedText>
-  );
-}
+type AuthMode = 'login' | 'register';
 
 export default function HomeScreen() {
-  const [apiStatus, setApiStatus] = useState('checking...');
+  const auth = useAuth();
+  const theme = useTheme();
+  const [mode, setMode] = useState<AuthMode>('login');
+  const [identifier, setIdentifier] = useState('');
+  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
+  const [displayName, setDisplayName] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    let isMounted = true;
+  const isRegistering = mode === 'register';
+  const trimmedIdentifier = identifier.trim();
+  const trimmedUsername = username.trim();
+  const trimmedEmail = email.trim();
+  const trimmedDisplayName = displayName.trim();
+  const passwordMismatch =
+    isRegistering && password.length > 0 && confirmPassword.length > 0 && password !== confirmPassword;
+  const isLoginComplete = trimmedIdentifier.length > 0 && password.length > 0;
+  const isRegisterComplete =
+    trimmedUsername.length > 0 &&
+    trimmedEmail.length > 0 &&
+    password.length > 0 &&
+    confirmPassword.length > 0;
+  const canSubmit =
+    !isSubmitting &&
+    !passwordMismatch &&
+    (isRegistering ? isRegisterComplete : isLoginComplete);
+  const displayedError = error ?? (passwordMismatch ? 'Passwords do not match.' : null);
+  const activeModeStyle = { borderColor: theme.text };
+  const inputStyle = [
+    styles.input,
+    {
+      borderColor: theme.text,
+      color: theme.text,
+    },
+  ];
 
-    fetch(`${API_URL}/api/health/`, {
-      "headers": {
-        "ngrok-skip-browser-warning": "true"
+  async function handleSubmit() {
+    setError(null);
+
+    if (!canSubmit) {
+      setError('Fill out every field.');
+      return;
+    }
+
+    if (isRegistering && password !== confirmPassword) {
+      setError('Passwords do not match.');
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      if (isRegistering) {
+        await auth.signUp(
+          trimmedUsername,
+          trimmedEmail,
+          password,
+          confirmPassword,
+          trimmedDisplayName,
+        );
+      } else {
+        await auth.signIn(trimmedIdentifier, password);
       }
-    })
-      .then((response) => {
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status}`);
-        }
-        return response.json();
-      })
-      .then((data: { status?: string; service?: string; database?: string }) => {
-        if (isMounted) {
-          const database = data.database === 'postgresql' ? ' + PostgreSQL' : '';
-          setApiStatus(`${data.service ?? 'Django'}${database} is ${data.status ?? 'online'}`);
-        }
-      })
-      .catch(() => {
-        if (isMounted) {
-          setApiStatus(`waiting for Django at ${API_URL}`);
-        }
-      });
+    } catch (caughtError) {
+      setError(caughtError instanceof Error ? caughtError.message : 'Unable to sign in.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
 
-    return () => {
-      isMounted = false;
-    };
-  }, []);
+  if (auth.isLoading) {
+    return (
+      <ThemedView style={styles.centered}>
+        <ActivityIndicator />
+      </ThemedView>
+    );
+  }
+
+  if (auth.user) {
+    return (
+      <ThemedView style={styles.container}>
+        <SafeAreaView style={styles.safeArea}>
+          <ThemedView style={styles.panel}>
+            <ThemedText type="subtitle">Hi, {auth.user.username}</ThemedText>
+            <Pressable style={styles.secondaryButton} onPress={auth.signOut}>
+              <ThemedText type="smallBold">Log out</ThemedText>
+            </Pressable>
+          </ThemedView>
+        </SafeAreaView>
+      </ThemedView>
+    );
+  }
 
   return (
     <ThemedView style={styles.container}>
-      <SafeAreaView style={styles.safeArea}>
-        <ThemedView style={styles.heroSection}>
-          <AnimatedIcon />
-          <ThemedText type="title" style={styles.title}>
-            Welcome to&nbsp;Expo
-          </ThemedText>
-        </ThemedView>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        style={styles.keyboardView}>
+        <SafeAreaView style={styles.safeArea}>
+          <ThemedView style={styles.panel}>
+            <ThemedView style={styles.modeSwitch}>
+              <Pressable
+                accessibilityRole="button"
+                style={[styles.modeButton, !isRegistering && activeModeStyle]}
+                onPress={() => setMode('login')}>
+                <ThemedText type="smallBold">Login</ThemedText>
+              </Pressable>
+              <Pressable
+                accessibilityRole="button"
+                style={[styles.modeButton, isRegistering && activeModeStyle]}
+                onPress={() => setMode('register')}>
+                <ThemedText type="smallBold">Create</ThemedText>
+              </Pressable>
+            </ThemedView>
 
-        <ThemedText type="code" style={styles.code}>
-          get started
-        </ThemedText>
+            {isRegistering ? (
+              <>
+                <TextInput
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  onChangeText={setUsername}
+                  placeholder="Username"
+                  placeholderTextColor={theme.textSecondary}
+                  style={inputStyle}
+                  value={username}
+                />
+                <TextInput
+                  autoCapitalize="none"
+                  autoComplete="email"
+                  autoCorrect={false}
+                  keyboardType="email-address"
+                  onChangeText={setEmail}
+                  placeholder="Email"
+                  placeholderTextColor={theme.textSecondary}
+                  style={inputStyle}
+                  value={email}
+                />
+                <TextInput
+                  autoCapitalize="words"
+                  onChangeText={setDisplayName}
+                  placeholder="Display name"
+                  placeholderTextColor={theme.textSecondary}
+                  style={inputStyle}
+                  value={displayName}
+                />
+              </>
+            ) : (
+              <TextInput
+                autoCapitalize="none"
+                autoCorrect={false}
+                onChangeText={setIdentifier}
+                placeholder="Username or email"
+                placeholderTextColor={theme.textSecondary}
+                style={inputStyle}
+                value={identifier}
+              />
+            )}
 
-        <ThemedView type="backgroundElement" style={styles.stepContainer}>
-          <HintRow
-            title="Try editing"
-            hint={<ThemedText type="code">src/app/index.tsx</ThemedText>}
-          />
-          <HintRow title="Dev tools" hint={getDevMenuHint()} />
-          <HintRow
-            title="Fresh start"
-            hint={<ThemedText type="code">npm run reset-project</ThemedText>}
-          />
-        </ThemedView>
+            <TextInput
+              autoCapitalize="none"
+              autoComplete="password"
+              onChangeText={setPassword}
+              placeholder="Password"
+              placeholderTextColor={theme.textSecondary}
+              secureTextEntry
+              style={inputStyle}
+              value={password}
+            />
 
-        <ThemedView type="backgroundElement" style={styles.apiContainer}>
-          <ThemedText type="smallBold">Backend</ThemedText>
-          <ThemedText type="small" themeColor="textSecondary" style={styles.apiStatus}>
-            {apiStatus}
-          </ThemedText>
-        </ThemedView>
+            {isRegistering && (
+              <TextInput
+                autoCapitalize="none"
+                autoComplete="password"
+                onChangeText={setConfirmPassword}
+                placeholder="Confirm password"
+                placeholderTextColor={theme.textSecondary}
+                secureTextEntry
+                style={inputStyle}
+                value={confirmPassword}
+              />
+            )}
 
-        {Platform.OS === 'web' && <WebBadge />}
-      </SafeAreaView>
+            {displayedError && (
+              <ThemedText type="small" style={styles.error}>
+                {displayedError}
+              </ThemedText>
+            )}
+
+            <Pressable
+              accessibilityRole="button"
+              disabled={!canSubmit}
+              onPress={handleSubmit}
+              style={({ pressed }) => [
+                styles.primaryButton,
+                { opacity: pressed || !canSubmit ? 0.5 : 1 },
+              ]}>
+              {isSubmitting ? (
+                <ActivityIndicator />
+              ) : (
+                <ThemedText type="smallBold">{isRegistering ? 'Create account' : 'Login'}</ThemedText>
+              )}
+            </Pressable>
+          </ThemedView>
+        </SafeAreaView>
+      </KeyboardAvoidingView>
     </ThemedView>
   );
 }
 
 const styles = StyleSheet.create({
+  centered: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   container: {
     flex: 1,
-    justifyContent: 'center',
     flexDirection: 'row',
+    justifyContent: 'center',
+  },
+  keyboardView: {
+    flex: 1,
+    flexDirection: 'row',
+    justifyContent: 'center',
   },
   safeArea: {
     flex: 1,
+    justifyContent: 'center',
+    gap: Spacing.four,
     paddingHorizontal: Spacing.four,
-    alignItems: 'center',
-    gap: Spacing.three,
     paddingBottom: BottomTabInset + Spacing.three,
     maxWidth: MaxContentWidth,
   },
-  heroSection: {
+  hero: {
+    gap: Spacing.two,
+  },
+  panel: {
+    gap: Spacing.three,
+  },
+  modeSwitch: {
+    flexDirection: 'row',
+    gap: Spacing.two,
+  },
+  modeButton: {
+    flex: 1,
+    minHeight: 40,
     alignItems: 'center',
     justifyContent: 'center',
-    flex: 1,
-    paddingHorizontal: Spacing.four,
-    gap: Spacing.four,
+    borderWidth: 1,
+    borderColor: 'transparent',
   },
-  title: {
-    textAlign: 'center',
-  },
-  code: {
-    textTransform: 'uppercase',
-  },
-  stepContainer: {
-    gap: Spacing.three,
-    alignSelf: 'stretch',
+  input: {
+    minHeight: 52,
+    borderWidth: 1,
     paddingHorizontal: Spacing.three,
-    paddingVertical: Spacing.four,
-    borderRadius: Spacing.four,
+    fontSize: 16,
+    fontWeight: '500',
   },
-  apiContainer: {
-    alignSelf: 'stretch',
-    gap: Spacing.one,
-    paddingHorizontal: Spacing.three,
-    paddingVertical: Spacing.three,
-    borderRadius: Spacing.four,
+  primaryButton: {
+    minHeight: 52,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
   },
-  apiStatus: {
-    flexShrink: 1,
+  secondaryButton: {
+    minHeight: 48,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+  },
+  error: {
+    color: '#C62828',
   },
 });
