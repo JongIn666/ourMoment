@@ -1,4 +1,4 @@
-import { Colors, Font } from '@/constants/theme';
+import { Colors } from '@/constants/theme';
 import { Pressable, StyleSheet, Text, type PressableProps, type StyleProp, type TextStyle } from 'react-native';
 
 export type LoginButtonProps = PressableProps & {
@@ -39,7 +39,6 @@ const styles = StyleSheet.create({
   label: {
     textAlign: 'center',
     margin: 'auto',
-    fontFamily: Font,
     fontSize: 24
   },
   primaryButton: {

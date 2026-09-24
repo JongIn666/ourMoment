@@ -31,6 +31,12 @@
           "image": "./assets/images/logo.png",
           "imageWidth": 282
         }
+      ],
+      [
+        "expo-font",
+        {
+          "fonts": ["node_modules/@expo-google-fonts/noto-sans/400Regular/NotoSans_400Regular.ttf"]
+        }
       ]
     ],
     "experiments": {

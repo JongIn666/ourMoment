@@ -34,5 +34,3 @@ export const Colors = {
     },
     textLink: colorPalette.darkLime
 } as const;
-
-export const Font = "Noto Sans";
