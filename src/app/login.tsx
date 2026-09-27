@@ -1,5 +1,5 @@
 import { Link } from 'expo-router';
-import { StyleSheet } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { LoginButton } from '@/components/login-button';
@@ -7,11 +7,17 @@ import { LoginHeader, LoginPanel } from '@/components/other-login-ui';
 import { SafeAreaViewThemed } from '@/components/safe-area-themed';
 import { TextInputThemed } from '@/components/text-input-themed';
 import { Colors } from '@/constants/theme';
+import { faChevronLeft } from '@fortawesome/free-solid-svg-icons';
+import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
 
 export default function LogIn() {
     return (
         <SafeAreaProvider>
             <SafeAreaViewThemed style={ styles.container }>
+                <View>
+                    <FontAwesomeIcon icon={faChevronLeft} />
+                </View>
+
                 <LoginHeader text="Welcome back to your moment!"/>
 
                 <LoginPanel>
