@@ -39,7 +39,7 @@ const styles = StyleSheet.create({
   label: {
     textAlign: 'center',
     margin: 'auto',
-    fontSize: 24
+    fontSize: 28
   },
   primaryButton: {
     backgroundColor: Colors.button.primary.color,

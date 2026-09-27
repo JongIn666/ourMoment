@@ -62,6 +62,7 @@ export default function LoggedOut() {
                     <LoginButton
                         text="Create account" 
                         type="secondary"
+                        onPress={() => router.navigate('/create-account')}
                     />
                 </View>
             </SafeAreaViewThemed>

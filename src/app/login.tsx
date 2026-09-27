@@ -43,9 +43,6 @@ const styles = StyleSheet.create({
     container: {
        gap: 24 
     },
-    backButtonView: {
-        alignSelf: 'flex-start'
-    },
     forgotLink: {
         color: Colors.textLink,
         fontSize: 16  
