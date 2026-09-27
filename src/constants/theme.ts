@@ -32,5 +32,8 @@ export const Colors = {
             label: colorPalette.midLime
         }
     },
+    icon: {
+        darkLime: colorPalette.darkLime
+    },
     textLink: colorPalette.darkLime
 } as const;
