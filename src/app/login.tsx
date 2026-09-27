@@ -24,6 +24,7 @@ export default function LogIn() {
 
                     <TextInputThemed
                         placeholder="Password"
+                        secureTextEntry={true}
                     />
 
                     <Link style={ styles.forgotLink } href="https://www.youtube.com/watch?v=dQw4w9WgXcQ">Forgot password?</Link>

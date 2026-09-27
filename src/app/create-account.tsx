@@ -18,15 +18,18 @@ export default function CreateAccount() {
                 <LoginPanel>
                     <TextInputThemed
                         placeholder="Email address"
+                        inputMode="email"
                     />
                     <TextInputThemed
                         placeholder="Username"
                     />
                     <TextInputThemed
                         placeholder="Password"
+                        secureTextEntry={true}
                     />
                     <TextInputThemed
                         placeholder="Re-enter password"
+                        secureTextEntry={true}
                     />
                 </LoginPanel>
 
