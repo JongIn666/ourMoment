@@ -4,20 +4,17 @@
     "slug": "ourMoment",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
+    "icon": "./assets/images/app-icon.png",
     "scheme": "ourmoment",
     "userInterfaceStyle": "automatic",
     "ios": {
-      "bundleIdentifier": "com.jonginlee.ourmoment",
-      "icon": "./assets/expo.icon"
+      "bundleIdentifier": "com.jonginlee.ourmoment"
     },
     "android": {
       "package": "com.jonginlee.ourmoment",
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
-        "foregroundImage": "./assets/images/android-icon-foreground.png",
-        "backgroundImage": "./assets/images/android-icon-background.png",
-        "monochromeImage": "./assets/images/android-icon-monochrome.png"
+        "backgroundColor": "#E6F0D0",
+        "foregroundImage": "./assets/images/app-icon-android-fg.png"
       },
       "predictiveBackGestureEnabled": false
     },
@@ -30,9 +27,15 @@
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#208AEF",
-          "image": "./assets/images/splash-icon.png",
-          "imageWidth": 76
+          "backgroundColor": "#E6F0D0",
+          "image": "./assets/images/logo.png",
+          "imageWidth": 282
+        }
+      ],
+      [
+        "expo-font",
+        {
+          "fonts": ["node_modules/@expo-google-fonts/noto-sans/400Regular/NotoSans_400Regular.ttf"]
         }
       ],
       "expo-secure-store"
