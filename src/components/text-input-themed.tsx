@@ -5,6 +5,7 @@ export function TextInputThemed({ ...rest }: TextInputProps) {
     return (
         <TextInput
             style={ styles.input }
+            placeholderTextColor={Colors.interface.text}
             { ...rest }
         />
     )
@@ -14,7 +15,6 @@ const styles = StyleSheet.create({
     input: {
         borderColor: Colors.interface.border,
         borderWidth: 1,
-        color: Colors.interface.text,
         padding: 14,
         fontSize: 22,
         alignSelf: 'stretch'
