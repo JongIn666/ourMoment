@@ -1,13 +1,13 @@
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { ActivityIndicator, KeyboardAvoidingView, Platform, StyleSheet, Text } from 'react-native';
+import { ActivityIndicator, KeyboardAvoidingView, Platform, StyleSheet } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { useAuth } from '@/context/auth';
 
 import { BackButtonView } from '@/components/back-button-view';
 import { LoginButton } from '@/components/login-button';
-import { LoginHeader, LoginPanel } from '@/components/other-login-ui';
+import { LoginError, LoginHeader, LoginPanel } from '@/components/other-login-ui';
 import { SafeAreaViewThemed } from '@/components/safe-area-themed';
 import { TextInputThemed } from '@/components/text-input-themed';
 
@@ -124,9 +124,9 @@ export default function CreateAccount() {
                         />
 
                         {displayedError && (
-                            <Text>
+                            <LoginError>
                                 {displayedError}
-                            </Text>
+                            </LoginError>
                         )}
                     </LoginPanel>
 

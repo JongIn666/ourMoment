@@ -14,7 +14,7 @@ export default function LoggedOut() {
                 <View>
                     <Image
                         source={require('@/assets/images/logo.png')}
-                        style={{width: 282, height: 333}}
+                        style={{width: 313, height: 333}}
                     />
                 </View>
 

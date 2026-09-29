@@ -1,6 +1,7 @@
-import { StyleSheet, Text, type ViewProps } from 'react-native';
+import { StyleSheet, Text, type TextProps, type ViewProps } from 'react-native';
 
 import { WhiteBox } from '@/components/white-box';
+import { Colors } from '@/constants/theme';
 
 export type LoginHeaderProps = ViewProps & {
   text: string
@@ -22,6 +23,12 @@ export function LoginPanel({ ...rest }: ViewProps) {
     )
 }
 
+export function LoginError({ ...rest } : TextProps) {
+    return (
+        <Text style={styles.loginError} {...rest}/>
+    )
+}
+
 const styles = StyleSheet.create({
     headerBox: {
         padding: 6
@@ -34,5 +41,9 @@ const styles = StyleSheet.create({
         gap: 24,
         alignItems: 'center',
         padding: 24
+    },
+    loginError: {
+        fontSize: 16,
+        color: Colors.interface.text
     }
 })
