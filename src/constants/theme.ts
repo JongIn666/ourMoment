@@ -2,6 +2,7 @@ import '@/global.css';
 
 const colorPalette = {
     lightLime: '#E6F0D0',
+    midLightLime: '#DDF690',
     midLime: '#90C400',
     darkLime: '#5E8000',
     white: '#fff',
@@ -19,7 +20,8 @@ export const Colors = {
     },
     interface: {
         border: colorPalette.midDarkGray,
-        text: colorPalette.darkGray
+        text: colorPalette.darkGray,
+        box: colorPalette.midLightGray
     },
     button: {
         primary: {
@@ -35,5 +37,8 @@ export const Colors = {
     icon: {
         darkLime: colorPalette.darkLime
     },
+    label: colorPalette.darkLime,
+    timeLine: colorPalette.midLime,
+    timeCircle: colorPalette.midLightLime,
     textLink: colorPalette.darkLime
 } as const;

@@ -10,7 +10,7 @@ export function BackButtonView() {
     return (
         <View style={ styles.backButtonView }>
             <Pressable onPress={ () => router.back() }>
-                <FontAwesomeIcon icon={faChevronLeft} size={24} color={Colors.icon.darkLime} />
+                <FontAwesomeIcon icon={faChevronLeft} size={32} color={Colors.icon.darkLime} />
             </Pressable>
         </View>
     )
