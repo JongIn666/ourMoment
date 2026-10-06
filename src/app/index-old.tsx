@@ -3,11 +3,11 @@ import { useEffect, useState } from 'react';
 import { Platform, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { AnimatedIcon } from '@/components/animated-icon';
-import { HintRow } from '@/components/hint-row';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { WebBadge } from '@/components/web-badge';
+import { AnimatedIcon } from '@/components/old/animated-icon';
+import { HintRow } from '@/components/old/hint-row';
+import { ThemedText } from '@/components/old/themed-text';
+import { ThemedView } from '@/components/old/themed-view';
+import { WebBadge } from '@/components/old/web-badge';
 import { API_URL } from '@/constants/api';
 import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme-old';
 
