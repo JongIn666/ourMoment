@@ -12,7 +12,7 @@ import { BackButtonView } from '@/components/back-button-view';
 import { HomeEntry } from '@/components/home-entry';
 import { TimelinePost } from '@/components/timeline-post';
 
-export default function Home() {
+export default function Group() {
     return (
         <SafeAreaProvider>
             <SafeAreaViewThemed style={styles.container}>

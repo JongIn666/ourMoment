@@ -77,6 +77,8 @@ export default function Home() {
                     <HomeEntry
                         imageSrc={require('@/assets/images/placeholder/jet-the-hmmmawk.png')}
                         label="yourMoments"
+
+                        onPress={() => router.navigate('/profile')}
                     />
                 </SafeAreaViewThemed>
             </SafeAreaProvider>
