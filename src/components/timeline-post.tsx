@@ -55,8 +55,8 @@ export function TimelinePost({date, startOfDate, userIcon, excerpt, tags, emojiR
                     />
                 </View>
                 <View style={styles.postRowTags}>
-                    {tags.map((tag) =>
-                        <Link href="https://www.youtube.com/watch?v=2yJgwwDcgV8" style={styles.postTag}>
+                    {tags.map((tag, index) =>
+                        <Link key={index} href="https://www.youtube.com/watch?v=2yJgwwDcgV8" style={styles.postTag}>
                             #{tag}
                         </Link>
                     )}
