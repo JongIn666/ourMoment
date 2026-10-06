@@ -6,7 +6,13 @@ import { Colors } from '@/constants/theme';
 
 export function AddButton({style, ...rest} : PressableProps) {
     return (
-        <Pressable style={[styles.addButton, style]} {...rest}>
+        <Pressable
+            style={(state) => [
+              styles.addButton,
+              typeof style === 'function' ? style(state) : style,
+            ]}
+            {...rest}
+        >
             <FontAwesomeIcon icon={faPlus} color={Colors.interface.text} size={48} />
         </Pressable>
     )

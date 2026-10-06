@@ -60,6 +60,16 @@ class RegisterSerializer(serializers.Serializer):
         return user
 
 
+class ChangeEmailSerializer(serializers.Serializer):
+    email = serializers.EmailField(initial='new@example.com')
+
+    def validate_email(self, value):
+        user = self.context['request'].user
+        if User.objects.filter(email__iexact=value).exclude(pk=user.pk).exists():
+            raise serializers.ValidationError('That email is already registered.')
+        return value
+
+
 class LoginSerializer(serializers.Serializer):
     identifier = serializers.CharField()
     password = serializers.CharField(write_only=True)

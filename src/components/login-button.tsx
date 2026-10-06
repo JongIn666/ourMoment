@@ -10,10 +10,10 @@ export type LoginButtonProps = PressableProps & {
 export function LoginButton({ text, type, style, labelStyle, ...rest }: LoginButtonProps) {
     return (
         <Pressable
-            style={[
+            style={(state) => [
               styles.button,
               type == "primary" ? styles.primaryButton: styles.secondaryButton,
-              style
+              typeof style === 'function' ? style(state) : style,
             ]}
             {...rest}
         >
