@@ -1,4 +1,5 @@
 import { faEllipsis } from '@fortawesome/free-solid-svg-icons/faEllipsis';
+import { faGear } from '@fortawesome/free-solid-svg-icons/faGear';
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
 import { Image, Pressable, StyleSheet, Text, type ImageSourcePropType, type PressableProps } from 'react-native';
 
@@ -8,10 +9,11 @@ import { Colors } from '@/constants/theme';
 export type HomeEntryProps = PressableProps & {
   imageSrc: ImageSourcePropType,
   label: string
-  moreButton?: boolean
+  moreButton?: boolean,
+  settingButton?: boolean
 };
 
-export function HomeEntry({ imageSrc, label, moreButton, ...rest }: HomeEntryProps) {
+export function HomeEntry({ imageSrc, label, moreButton, settingButton, ...rest }: HomeEntryProps) {
     return (
         <Pressable {...rest}>
             <WhiteBox style={styles.groupEntry}>
@@ -25,8 +27,14 @@ export function HomeEntry({ imageSrc, label, moreButton, ...rest }: HomeEntryPro
                 </Text>
 
                 {moreButton && (
-                    <Pressable style={styles.moreButton}>
+                    <Pressable style={styles.button}>
                         <FontAwesomeIcon icon={faEllipsis} color={Colors.interface.text} size={24} />
+                    </Pressable>
+                )}
+
+                {settingButton && (
+                    <Pressable style={styles.button}>
+                        <FontAwesomeIcon icon={faGear} color={Colors.interface.text} size={24} />
                     </Pressable>
                 )}
             </WhiteBox>
@@ -51,7 +59,7 @@ const styles = StyleSheet.create({
   entryLabel: {
     fontSize: 28
   },
-  moreButton: {
+  button: {
     position: "absolute",
     top: 11,
     right: 11

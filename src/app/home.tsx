@@ -1,3 +1,5 @@
+import { useRouter } from 'expo-router';
+
 import { SafeAreaViewThemed } from '@/components/safe-area-themed';
 import { Image, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -9,6 +11,7 @@ import { useAuth } from '@/context/auth';
 
 export default function Home() {
     const auth = useAuth();
+    const router = useRouter();
 
     if (auth.user) {
         return (
@@ -27,6 +30,8 @@ export default function Home() {
                                 imageSrc={require('@/assets/images/placeholder/chao-tales.jpg')}
                                 label="Dog"
                                 moreButton
+
+                                onPress={() => router.navigate('/group')}
                             />
 
                             <HomeEntry
