@@ -14,6 +14,8 @@ class ProfileSerializer(serializers.ModelSerializer):
             'email',
             'displayName',
             'birthday',
+            'showAge',
+            'showBirthday',
             'profilePicUrl',
             'bio',
         ]
