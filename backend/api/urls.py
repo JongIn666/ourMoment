@@ -1,6 +1,6 @@
 from django.urls import path
 
-from .views import change_email, health, login, logout, me, profile, register, group
+from .views import change_email, health, login, logout, me, profile, register, group, group_detail
 
 urlpatterns = [
     path('health/', health, name='health'),
@@ -11,4 +11,5 @@ urlpatterns = [
     path('auth/email/', change_email, name='auth-email'),
     path('profile/', profile, name='profile'),
     path('groups/', group, name='groups'),
+    path('groups/<int:group_id>/', group_detail, name='group-detail'),
 ]
