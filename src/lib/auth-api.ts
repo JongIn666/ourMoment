@@ -5,6 +5,8 @@ export type Profile = {
   email: string;
   displayName: string;
   birthday: string | null;
+  showAge: boolean;
+  showBirthday: boolean;
   profilePicUrl: string;
   bio: string;
 };
@@ -88,6 +90,27 @@ export function register(
 
 export function getCurrentUser(token: string) {
   return apiFetch<AuthUser>('/api/auth/me/', {}, token);
+}
+
+export function getProfile(token: string) {
+  return apiFetch<Profile>('/api/profile/', {}, token);
+}
+
+export function updateProfile(
+  token: string,
+  profile: Pick<Profile, 'username' | 'displayName' | 'birthday' | 'showAge' | 'showBirthday' | 'bio'>,
+) {
+  return apiFetch<Profile>('/api/profile/', {
+    method: 'PATCH',
+    body: JSON.stringify(profile),
+  }, token);
+}
+
+export function updateEmail(token: string, email: string) {
+  return apiFetch<{ email: string }>('/api/auth/email/', {
+    method: 'PATCH',
+    body: JSON.stringify({ email }),
+  }, token);
 }
 
 export function logout(token: string) {
