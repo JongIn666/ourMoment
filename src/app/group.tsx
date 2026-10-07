@@ -10,6 +10,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
 
 import { BackButtonView } from '@/components/back-button-view';
 import { HomeEntry } from '@/components/home-entry';
+import { Timeline } from '@/components/timeline';
 import { TimelinePost } from '@/components/timeline-post';
 
 export default function Group() {
@@ -41,7 +42,7 @@ export default function Group() {
                 />
 
                 <ScrollView contentContainerStyle={styles.mainContainer} style={styles.mainContainerSelf}>
-                    <View style={styles.timeLine}/>
+                    <Timeline/>
 
                     <View style={styles.postsContain}>
                         <TimelinePost
@@ -98,13 +99,6 @@ const styles = StyleSheet.create({
   },
   mainContainerSelf: {
     width: "100%"
-  },
-  timeLine: {
-    backgroundColor: Colors.timeLine,
-    width: 30,
-    height: 1000,
-    borderRadius: 50,
-    marginLeft: 50
   },
   postsContain: {
     flexShrink: 1

@@ -38,6 +38,7 @@ export const Colors = {
         darkLime: colorPalette.darkLime
     },
     label: colorPalette.darkLime,
+    heading: colorPalette.darkLime,
     timeLine: colorPalette.midLime,
     timeCircle: colorPalette.midLightLime,
     textLink: colorPalette.darkLime
