@@ -1,20 +1,31 @@
+import json
+from urllib.error import URLError
+from urllib.parse import urlencode
+from urllib.request import urlopen
+
 from django.conf import settings
+from django.contrib.auth import get_user_model
 from django.core.mail import send_mail
 from django.db import transaction
 from rest_framework import status
-from rest_framework.exceptions import APIException
+from rest_framework.exceptions import APIException, ValidationError
 from rest_framework.authtoken.models import Token
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.generics import GenericAPIView
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 
+from ..models.profile import Profile
 from ..serializers.auth import (
     ChangeEmailSerializer,
     LoginSerializer,
     RegisterSerializer,
     UserSerializer,
 )
+
+User = get_user_model()
+
+GOOGLE_TOKENINFO_URL = 'https://oauth2.googleapis.com/tokeninfo'
 
 
 def auth_response(user, response_status=status.HTTP_200_OK):
@@ -43,6 +54,74 @@ def login(request):
     serializer = LoginSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
     return auth_response(serializer.validated_data['user'])
+
+
+def verify_google_id_token(id_token):
+    try:
+        with urlopen(f'{GOOGLE_TOKENINFO_URL}?{urlencode({"id_token": id_token})}', timeout=10) as response:
+            payload = json.loads(response.read().decode())
+    except (URLError, ValueError, OSError):
+        raise ValidationError('Could not verify your Google account. Please try again.')
+
+    if settings.GOOGLE_CLIENT_IDS and payload.get('aud') not in settings.GOOGLE_CLIENT_IDS:
+        raise ValidationError('That Google sign-in was not meant for this app.')
+    if payload.get('email_verified') not in (True, 'true'):
+        raise ValidationError('Your Google email address is not verified.')
+    if not payload.get('email'):
+        raise ValidationError('Google did not share an email address with us.')
+
+    return payload
+
+
+def display_name_from_google(name, fallback):
+    cleaned = ''.join(
+        character for character in name
+        if character.isascii() and (character.isalnum() or character == ' ')
+    ).strip()
+    return cleaned[:30] or fallback
+
+
+def unique_username_from_email(email):
+    base = ''.join(character for character in email.split('@')[0] if character.isascii() and character.isalnum())
+    base = (base or 'user')[:20]
+    username = base
+    suffix = 1
+    while User.objects.filter(username__iexact=username).exists():
+        suffix += 1
+        username = f'{base[:20 - len(str(suffix))]}{suffix}'
+    return username
+
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def google_login(request):
+    id_token = request.data.get('idToken')
+    if not id_token:
+        raise ValidationError('No Google ID token was provided.')
+
+    payload = verify_google_id_token(id_token)
+    email = payload['email']
+
+    user = User.objects.filter(email__iexact=email).first()
+    if user is None:
+        with transaction.atomic():
+            user = User.objects.create_user(
+                username=unique_username_from_email(email),
+                email=email,
+            )
+            user.set_unusable_password()
+            user.save(update_fields=['password'])
+            picture = payload.get('picture', '')
+            Profile.objects.create(
+                user=user,
+                displayName=display_name_from_google(payload.get('name', ''), user.get_username()),
+                profilePicUrl=picture if len(picture) <= 200 else '',
+            )
+
+    if not user.is_active:
+        raise ValidationError('This account is inactive.')
+
+    return auth_response(user)
 
 
 @api_view(['POST'])

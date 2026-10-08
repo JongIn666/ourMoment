@@ -6,6 +6,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { useAuth } from '@/context/auth';
 
 import { BackButtonView } from '@/components/back-button-view';
+import { GoogleLoginButton } from '@/components/google-login-button';
 import { LoginButton } from '@/components/login-button';
 import { LoginError, LoginHeader, LoginPanel } from '@/components/other-login-ui';
 import { SafeAreaViewThemed } from '@/components/safe-area-themed';
@@ -103,6 +104,8 @@ export default function LogIn() {
                         disabled={!canSubmit}
                         onPress={handleSubmit}
                     />
+
+                    <GoogleLoginButton/>
                 </SafeAreaViewThemed>
             </KeyboardAvoidingView>
         </SafeAreaProvider>

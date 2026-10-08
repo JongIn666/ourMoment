@@ -105,6 +105,13 @@ export function register(
   });
 }
 
+export function googleLogin(idToken: string) {
+  return apiFetch<AuthResponse>('/api/auth/google/', {
+    method: 'POST',
+    body: JSON.stringify({ idToken }),
+  });
+}
+
 export function getCurrentUser(token: string) {
   return apiFetch<AuthUser>('/api/auth/me/', {}, token);
 }
@@ -120,6 +127,13 @@ export function updateProfile(
   return apiFetch<Profile>('/api/profile/', {
     method: 'PATCH',
     body: JSON.stringify(profile),
+  }, token);
+}
+
+export function updateUsername(token: string, username: string) {
+  return apiFetch<Profile>('/api/profile/', {
+    method: 'PATCH',
+    body: JSON.stringify({ username }),
   }, token);
 }
 

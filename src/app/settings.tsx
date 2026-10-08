@@ -25,6 +25,12 @@ export default function Settings() {
 
         <Text style={styles.heading}>Settings</Text>
 
+        <LoginButton
+          text="Edit username"
+          type="primary"
+          onPress={() => router.navigate("/edit-username")}
+        />
+
         <LoginButton text="Log out" type="secondary" onPress={handleLogOut} />
       </SafeAreaViewThemed>
     </SafeAreaProvider>

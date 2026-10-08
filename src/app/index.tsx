@@ -2,6 +2,7 @@ import { useRouter } from 'expo-router';
 import { Image, StyleSheet, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
+import { GoogleLoginButton } from '@/components/google-login-button';
 import { LoginButton } from '@/components/login-button';
 import { SafeAreaViewThemed } from '@/components/safe-area-themed';
 
@@ -31,6 +32,8 @@ export default function LoggedOut() {
                         type="secondary"
                         onPress={() => router.navigate('/create-account')}
                     />
+
+                    <GoogleLoginButton/>
                 </View>
             </SafeAreaViewThemed>
         </SafeAreaProvider>

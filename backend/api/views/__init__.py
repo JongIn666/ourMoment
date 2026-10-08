@@ -1,6 +1,6 @@
-from .auth import change_email, login, logout, me, register
+from .auth import change_email, google_login, login, logout, me, register
 from .health import health
 from .profile import profile
 from .group import group, group_detail
 
-__all__ = ['health', 'login', 'logout', 'me', 'profile', 'register', 'group', 'group_detail', 'change_email']
+__all__ = ['health', 'login', 'logout', 'me', 'profile', 'register', 'group', 'group_detail', 'change_email', 'google_login']

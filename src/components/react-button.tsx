@@ -4,12 +4,12 @@ import { faComment } from '@fortawesome/free-solid-svg-icons/faComment';
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
 
 import { Colors } from '@/constants/theme';
-import { emoji } from './emoji';
+import { type Emoji } from './emoji';
 
 export type ReactButtonProps = PressableProps & {
   type: 'comment' | 'emoji';
   count: number;
-  emoji?: emoji
+  emoji?: Emoji
 };
 
 export function ReactButton({type, count, emoji} : ReactButtonProps) {

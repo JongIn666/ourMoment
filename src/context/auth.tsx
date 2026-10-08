@@ -16,6 +16,7 @@ type AuthContextValue = {
   token: string | null;
   user: authApi.AuthUser | null;
   signIn: (identifier: string, password: string) => Promise<void>;
+  signInWithGoogle: (idToken: string) => Promise<void>;
   signOut: () => Promise<void>;
   signUp: (
     username: string,
@@ -71,6 +72,14 @@ export function AuthProvider({ children }: PropsWithChildren) {
     [applyAuthResponse],
   );
 
+  const signInWithGoogle = useCallback(
+    async (idToken: string) => {
+      const response = await authApi.googleLogin(idToken);
+      await applyAuthResponse(response);
+    },
+    [applyAuthResponse],
+  );
+
   const signUp = useCallback(
     async (
       username: string,
@@ -106,12 +115,13 @@ export function AuthProvider({ children }: PropsWithChildren) {
     () => ({
       isLoading,
       signIn,
+      signInWithGoogle,
       signOut,
       signUp,
       token,
       user,
     }),
-    [isLoading, signIn, signOut, signUp, token, user],
+    [isLoading, signIn, signInWithGoogle, signOut, signUp, token, user],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

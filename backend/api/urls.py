@@ -1,11 +1,12 @@
 from django.urls import path
 
-from .views import change_email, health, login, logout, me, profile, register, group, group_detail
+from .views import change_email, google_login, health, login, logout, me, profile, register, group, group_detail
 
 urlpatterns = [
     path('health/', health, name='health'),
     path('auth/register/', register, name='auth-register'),
     path('auth/login/', login, name='auth-login'),
+    path('auth/google/', google_login, name='auth-google'),
     path('auth/logout/', logout, name='auth-logout'),
     path('auth/me/', me, name='auth-me'),
     path('auth/email/', change_email, name='auth-email'),
