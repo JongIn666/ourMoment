@@ -277,6 +277,13 @@ export function updateEmail(token: string, email: string) {
   }, token);
 }
 
+export function updatePassword(token: string, password: string, confirmPassword: string) {
+  return apiFetch<{ detail: string }>('/api/auth/password/', {
+    method: 'PATCH',
+    body: JSON.stringify({ password, confirmPassword }),
+  }, token);
+}
+
 export function logout(token: string) {
   return apiFetch<void>('/api/auth/logout/', { method: 'POST' }, token);
 }

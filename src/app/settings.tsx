@@ -38,6 +38,12 @@ export default function Settings() {
         />
 
         <LoginButton
+          text="Edit password"
+          type="primary"
+          onPress={() => router.navigate("/edit-password")}
+        />
+
+        <LoginButton
           text="Edit profile picture"
           type="primary"
           onPress={() => router.navigate("/edit-profile-picture")}

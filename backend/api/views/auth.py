@@ -18,6 +18,7 @@ from rest_framework.response import Response
 from ..models.profile import Profile
 from ..serializers.auth import (
     ChangeEmailSerializer,
+    ChangePasswordSerializer,
     LoginSerializer,
     RegisterSerializer,
     ResetPasswordIdentifierSerializer,
@@ -249,3 +250,20 @@ class ChangeEmailView(GenericAPIView):
 
 
 change_email = ChangeEmailView.as_view()
+
+
+class ChangePasswordView(GenericAPIView):
+    serializer_class = ChangePasswordSerializer
+    permission_classes = [IsAuthenticated]
+
+    def patch(self, request):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response({'detail': 'Password updated.'}, status=status.HTTP_200_OK)
+
+    def put(self, request):
+        return self.patch(request)
+
+
+change_password = ChangePasswordView.as_view()
