@@ -31,6 +31,12 @@ export default function Settings() {
           onPress={() => router.navigate("/edit-username")}
         />
 
+        <LoginButton
+          text="Edit email"
+          type="primary"
+          onPress={() => router.navigate("/edit-email")}
+        />
+
         <LoginButton text="Log out" type="secondary" onPress={handleLogOut} />
       </SafeAreaViewThemed>
     </SafeAreaProvider>
