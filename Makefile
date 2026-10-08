@@ -23,6 +23,7 @@ help:
 	@echo "  make go            Start Expo Go fallback"
 	@echo "  make tunnel		Start Expo through tunnel"
 	@echo "  make migrate       Run Django migrations"
+	@echo "  make makemigrations Make new Django migrations"
 	@echo "  make check         Run Expo, TypeScript, Django, and database checks"
 	@echo "  make doctor-ios    Show selected Xcode and macOS SDK paths"
 	@echo "  make clean         Remove local generated backend files"
@@ -73,6 +74,9 @@ tunnel:
 
 migrate:
 	$(MANAGE) migrate
+
+makemigrations:
+	$(MANAGE) makemigrations
 
 check: expo-check typecheck django-check db-check
 
