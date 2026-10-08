@@ -1,7 +1,8 @@
+import { ResponseType } from 'expo-auth-session';
 import * as Google from 'expo-auth-session/providers/google';
 import * as WebBrowser from 'expo-web-browser';
 import { useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { LoginButton } from '@/components/login-button';
@@ -12,34 +13,67 @@ import { useAuth } from '@/context/auth';
 WebBrowser.maybeCompleteAuthSession();
 
 export function GoogleLoginButton() {
-    const auth = useAuth();
+    const { signInWithGoogle } = useAuth();
     const router = useRouter();
 
     const [error, setError] = useState<string | null>(null);
+    const [isSigningIn, setIsSigningIn] = useState(false);
+    const handledIdTokenRef = useRef<string | null>(null);
 
     const [request, response, promptAsync] = Google.useAuthRequest({
         iosClientId: GOOGLE_IOS_CLIENT_ID,
+        responseType: ResponseType.IdToken,
     });
 
     useEffect(() => {
-        if (response?.type === 'error') {
-            setError('Google sign-in was not completed. Please try again.');
-            return;
-        }
-        if (response?.type !== 'success') return;
+        let isActive = true;
 
-        const idToken = response.params.id_token ?? response.authentication?.idToken;
-        if (!idToken) {
-            setError('Google did not return an ID token. Please try again.');
-            return;
+        async function handleResponse() {
+            if (response?.type === 'error') {
+                if (isActive) {
+                    setError('Google sign-in was not completed. Please try again.');
+                }
+                return;
+            }
+            if (response?.type !== 'success') return;
+
+            const idToken = response.params.id_token ?? response.authentication?.idToken;
+            if (!idToken) {
+                if (isActive) {
+                    setError('Google did not return an ID token. Please try again.');
+                }
+                return;
+            }
+            if (handledIdTokenRef.current === idToken) return;
+
+            handledIdTokenRef.current = idToken;
+            if (isActive) {
+                setIsSigningIn(true);
+            }
+
+            try {
+                await signInWithGoogle(idToken);
+                if (isActive) {
+                    router.replace('/home');
+                }
+            } catch (caughtError: unknown) {
+                handledIdTokenRef.current = null;
+                if (isActive) {
+                    setError(caughtError instanceof Error ? caughtError.message : 'Unable to sign in with Google.');
+                }
+            } finally {
+                if (isActive) {
+                    setIsSigningIn(false);
+                }
+            }
         }
 
-        auth.signInWithGoogle(idToken)
-            .then(() => router.replace('/home'))
-            .catch((caughtError: unknown) => {
-                setError(caughtError instanceof Error ? caughtError.message : 'Unable to sign in with Google.');
-            });
-    }, [auth, response, router]);
+        void handleResponse();
+
+        return () => {
+            isActive = false;
+        };
+    }, [response, router, signInWithGoogle]);
 
     return (
         <View style={styles.container}>
@@ -47,10 +81,16 @@ export function GoogleLoginButton() {
                 text="Continue with Google"
                 type="secondary"
                 labelStyle={styles.label}
-                disabled={!request}
+                disabled={!request || isSigningIn}
                 onPress={() => {
                     setError(null);
-                    promptAsync();
+                    void promptAsync({ preferEphemeralSession: true }).catch((caughtError: unknown) => {
+                        setError(
+                            caughtError instanceof Error
+                                ? caughtError.message
+                                : 'Google sign-in could not be started. Please try again.',
+                        );
+                    });
                 }}
             />
 

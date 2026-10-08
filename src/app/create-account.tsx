@@ -1,5 +1,5 @@
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ActivityIndicator, KeyboardAvoidingView, Platform, StyleSheet } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
@@ -37,6 +37,12 @@ export default function CreateAccount() {
         isRegisterComplete;
     const displayedError = error ?? (passwordMismatch ? 'Passwords do not match.' : null);
 
+    useEffect(() => {
+        if (!auth.isLoading && auth.user) {
+            router.replace('/home');
+        }
+    }, [auth.isLoading, auth.user, router]);
+
     async function handleSubmit() {
         setError(null);
 
@@ -60,7 +66,7 @@ export default function CreateAccount() {
                 confirmPassword,
                 "Sonic the Hedgehog" // lol
             );
-            router.navigate('/home');
+            router.replace('/home');
         } catch (caughtError) {
             setError(caughtError instanceof Error ? caughtError.message : 'Unable to sign in.');
         } finally {
@@ -68,7 +74,7 @@ export default function CreateAccount() {
         }
     }
 
-    if (auth.isLoading) {
+    if (auth.isLoading || auth.user) {
         return (
             <SafeAreaProvider>
                 <SafeAreaViewThemed>

@@ -39,7 +39,12 @@
         }
       ],
       "expo-secure-store",
-      "@react-native-community/datetimepicker"
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow ourMoment to access your photos so you can set a profile picture."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

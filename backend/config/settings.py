@@ -32,16 +32,22 @@ EMAIL_USE_SSL = os.environ.get('EMAIL_USE_SSL', '').lower() in {'1', 'true', 'ye
 EMAIL_TIMEOUT = int(os.environ.get('EMAIL_TIMEOUT', '10'))
 DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'webmaster@localhost')
 
+AWS_ACCESS_KEY_ID = os.environ.get('AWS_ACCESS_KEY_ID', '')
+AWS_SECRET_ACCESS_KEY = os.environ.get('AWS_SECRET_ACCESS_KEY', '')
+AWS_REGION = os.environ.get('AWS_REGION', 'us-east-1')
+AWS_S3_BUCKET = os.environ.get('AWS_S3_BUCKET', '')
+
 GOOGLE_CLIENT_IDS = [
     client_id.strip()
     for client_id in os.environ.get('GOOGLE_CLIENT_IDS', '').split(',')
     if client_id.strip()
 ]
 
-ALLOWED_HOSTS = os.environ.get(
-    'DJANGO_ALLOWED_HOSTS',
-    'localhost,127.0.0.1,0.0.0.0,10.0.2.2,.ngrok-free.dev',
-).split(',')
+DEFAULT_ALLOWED_HOSTS = 'localhost,127.0.0.1,0.0.0.0,10.0.2.2,.ngrok-free.dev'
+if DEBUG:
+    DEFAULT_ALLOWED_HOSTS = f'{DEFAULT_ALLOWED_HOSTS},*'
+
+ALLOWED_HOSTS = os.environ.get('DJANGO_ALLOWED_HOSTS', DEFAULT_ALLOWED_HOSTS).split(',')
 
 
 # Application definition
@@ -141,11 +147,15 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
 STATIC_URL = 'static/'
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+DATA_UPLOAD_MAX_MEMORY_SIZE = 8 * 1024 * 1024
+FILE_UPLOAD_MAX_MEMORY_SIZE = 8 * 1024 * 1024
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
