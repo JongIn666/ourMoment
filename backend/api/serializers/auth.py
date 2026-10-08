@@ -71,6 +71,28 @@ class ChangeEmailSerializer(serializers.Serializer):
         return value
 
 
+class ChangePasswordSerializer(serializers.Serializer):
+    password = serializers.CharField(write_only=True, min_length=8)
+    confirmPassword = serializers.CharField(write_only=True, min_length=8)
+
+    def validate_password(self, value):
+        if self.context['request'].user.check_password(value):
+            raise serializers.ValidationError('Password unchanged. You cannot save your current password.')
+        validate_password(value)
+        return value
+
+    def validate(self, attrs):
+        if attrs['password'] != attrs['confirmPassword']:
+            raise serializers.ValidationError('Passwords do not match.')
+        return attrs
+
+    def save(self, **kwargs):
+        user = self.context['request'].user
+        user.set_password(self.validated_data['password'])
+        user.save(update_fields=['password'])
+        return user
+
+
 class LoginSerializer(serializers.Serializer):
     identifier = serializers.CharField()
     password = serializers.CharField(write_only=True)

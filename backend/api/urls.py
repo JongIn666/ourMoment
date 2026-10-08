@@ -2,6 +2,7 @@ from django.urls import path
 
 from .views import (
     change_email,
+    change_password,
     google_login,
     group,
     group_detail,
@@ -29,6 +30,7 @@ urlpatterns = [
     path('auth/logout/', logout, name='auth-logout'),
     path('auth/me/', me, name='auth-me'),
     path('auth/email/', change_email, name='auth-email'),
+    path('auth/password/', change_password, name='auth-password'),
     path('profile/', profile, name='profile'),
     path('profile/picture/', profile_picture, name='profile-picture'),
     path('groups/', group, name='groups'),
