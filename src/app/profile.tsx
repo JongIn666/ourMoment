@@ -1,4 +1,6 @@
 import { SafeAreaViewThemed } from '@/components/safe-area-themed';
+import { useFocusEffect, useRouter } from 'expo-router';
+import { useCallback, useState } from 'react';
 import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
@@ -11,8 +13,38 @@ import { Timeline } from '@/components/timeline';
 import { TimelinePost } from '@/components/timeline-post';
 import { WhiteBox } from '@/components/white-box';
 import { Colors } from '@/constants/theme';
+import { useAuth } from '@/context/auth';
+import * as authApi from '@/lib/auth-api';
 
 export default function Profile() {
+  const router = useRouter();
+  const { token, user } = useAuth();
+  const [profile, setProfile] = useState<authApi.Profile | null>(null);
+
+  useFocusEffect(
+    useCallback(() => {
+      let isActive = true;
+      if (token) {
+        authApi.getProfile(token)
+          .then((currentProfile) => {
+            if (isActive) setProfile(currentProfile);
+          })
+          .catch(() => {
+            if (isActive && user) setProfile(user.profile);
+          });
+      }
+      return () => {
+        isActive = false;
+      };
+    }, [token, user]),
+  );
+
+  const birthday = profile?.birthday
+    ? new Date(`${profile.birthday}T00:00:00`).toLocaleDateString('en-US', { dateStyle: 'long' })
+    : null;
+  const age = profile?.birthday ? calculateAge(profile.birthday) : null;
+  const ageEmoji = age === null ? null : getAgeEmoji(age);
+
     return (
         <SafeAreaProvider>
             <SafeAreaViewThemed style={styles.container}>
@@ -20,36 +52,49 @@ export default function Profile() {
 
                 <WhiteBox style={styles.profileHeader}>
                     <Image
-                        source={require('@/assets/images/placeholder/jet-the-hmmmawk.png')}
+                      source={profile?.profilePicUrl
+                        ? { uri: profile.profilePicUrl }
+                        : require('@/assets/images/placeholder/jet-the-hmmmawk.png')}
                         style={styles.userIcon}
                     />
         
                     <View style={styles.basicInfo}>
                         <View>
                             <Text style={styles.displayNameLabel}>
-                                Jet the Hmmawk 🤨
+                            {profile?.displayName || profile?.username || user?.username || 'Your profile'}
                             </Text>
                             <Text style={styles.usernameLabel}>
-                                @JettisonQHawkington
+                            @{profile?.username || user?.username || ''}
                             </Text>
                         </View>
         
-                        <View style={styles.birthdayGift}>
+                        {profile?.showBirthday && birthday && (
+                          <View style={styles.profileDetail}>
                             <FontAwesomeIcon icon={faCakeCandles} color={Colors.interface.text} size={16} />
-                            <Text style={styles.happyBirthday}>
-                                { new Date("2006-02-21").toLocaleString('en-US', {dateStyle: 'long'})  }
-                            </Text>
-                        </View>
+                            <Text style={styles.happyBirthday}>{birthday}</Text>
+                          </View>
+                        )}
+                        {profile?.showAge && age !== null && ageEmoji && (
+                          <View style={styles.profileDetail}>
+                            <Text style={styles.ageEmoji}>{ageEmoji}</Text>
+                            <Text style={styles.happyBirthday}>{age} years old</Text>
+                          </View>
+                        )}
                     </View>
         
-                    <Pressable style={styles.settingButton}>
+                      <Pressable
+                        accessibilityLabel="Edit profile settings"
+                        hitSlop={10}
+                        onPress={() => router.push('/edit-profile')}
+                        style={styles.settingButton}
+                      >
                         <FontAwesomeIcon icon={faGear} color={Colors.interface.text} size={24} />
                     </Pressable>
                 </WhiteBox>
 
                 <WhiteBox style={styles.bio}>
                   <Text>
-                    Hmph! He may be the fastest creature on the ground, but in the air, with me and my Extreme Gear, he's just a joke!
+                      {profile?.bio || 'Add a little about yourself in profile settings.'}
                   </Text>
                 </WhiteBox>
 
@@ -96,6 +141,28 @@ export default function Profile() {
     )
 }
 
+function calculateAge(birthday: string) {
+  const birthDate = new Date(`${birthday}T00:00:00`);
+  if (Number.isNaN(birthDate.getTime())) return null;
+
+  const today = new Date();
+  if (birthDate > today) return null;
+
+  let age = today.getFullYear() - birthDate.getFullYear();
+  const birthdayHasPassed =
+    today.getMonth() > birthDate.getMonth() ||
+    (today.getMonth() === birthDate.getMonth() && today.getDate() >= birthDate.getDate());
+  if (!birthdayHasPassed) age -= 1;
+  return age;
+}
+
+function getAgeEmoji(age: number) {
+  if (age <= 12) return '🧸';
+  if (age <= 19) return '🎓';
+  if (age <= 45) return '💪';
+  return '🧓';
+}
+
 const styles = StyleSheet.create({
   container: {
     gap: 16
@@ -123,9 +190,12 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: Colors.interface.text
   },
-  birthdayGift: {
+  profileDetail: {
     flexDirection: 'row',
     gap: 3
+  },
+  ageEmoji: {
+    fontSize: 15,
   },
   happyBirthday: {
     color: Colors.interface.text
