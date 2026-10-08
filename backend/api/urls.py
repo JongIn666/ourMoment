@@ -15,12 +15,16 @@ from .views import (
     profile,
     profile_picture,
     register,
+    reset_password,
+    reset_password_check,
 )
 
 urlpatterns = [
     path('health/', health, name='health'),
     path('auth/register/', register, name='auth-register'),
     path('auth/login/', login, name='auth-login'),
+    path('auth/reset-password/check/', reset_password_check, name='auth-reset-password-check'),
+    path('auth/reset-password/', reset_password, name='auth-reset-password'),
     path('auth/google/', google_login, name='auth-google'),
     path('auth/logout/', logout, name='auth-logout'),
     path('auth/me/', me, name='auth-me'),

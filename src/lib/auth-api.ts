@@ -140,6 +140,20 @@ export function register(
   });
 }
 
+export function resetPassword(identifier: string, password: string, confirmPassword: string) {
+  return apiFetch<{ detail: string }>('/api/auth/reset-password/', {
+    method: 'POST',
+    body: JSON.stringify({ identifier, password, confirmPassword }),
+  });
+}
+
+export function checkResetIdentifier(identifier: string) {
+  return apiFetch<{ detail: string }>('/api/auth/reset-password/check/', {
+    method: 'POST',
+    body: JSON.stringify({ identifier }),
+  });
+}
+
 export function googleLogin(idToken: string) {
   return apiFetch<AuthResponse>('/api/auth/google/', {
     method: 'POST',
