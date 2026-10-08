@@ -18,6 +18,25 @@ export type AuthUser = {
   profile: Profile;
 };
 
+export type UserGroup = {
+  id: number;
+  name: string;
+  description: string;
+  members: GroupMember[];
+  createdAt: string;
+};
+
+export type GroupMember = {
+  id: number;
+  username: string;
+  profile: {
+    displayName: string;
+    birthday: string | null;
+    showAge: boolean;
+    showBirthday: boolean;
+  };
+};
+
 type AuthResponse = {
   token: string;
   user: AuthUser;
@@ -111,6 +130,41 @@ export function getCurrentUser(token: string) {
 
 export function getProfile(token: string) {
   return apiFetch<Profile>('/api/profile/', {}, token);
+}
+
+export function getGroups(token: string) {
+  return apiFetch<UserGroup[]>('/api/groups/', {}, token);
+}
+
+export function createGroup(
+  token: string,
+  group: Pick<UserGroup, 'name' | 'description'>,
+) {
+  return apiFetch<UserGroup>('/api/groups/', {
+    method: 'POST',
+    body: JSON.stringify(group),
+  }, token);
+}
+
+export function getGroup(token: string, groupId: number) {
+  return apiFetch<UserGroup>(`/api/groups/${groupId}/`, {}, token);
+}
+
+export function updateGroup(
+  token: string,
+  groupId: number,
+  updates: Pick<UserGroup, 'name' | 'description'>,
+) {
+  return apiFetch<UserGroup>(`/api/groups/${groupId}/`, {
+    method: 'PATCH',
+    body: JSON.stringify(updates),
+  }, token);
+}
+
+export function deleteGroup(token: string, groupId: number) {
+  return apiFetch<void>(`/api/groups/${groupId}/`, {
+    method: 'DELETE',
+  }, token);
 }
 
 export function updateProfile(

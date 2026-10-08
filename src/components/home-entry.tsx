@@ -1,30 +1,39 @@
 import { faEllipsis } from '@fortawesome/free-solid-svg-icons/faEllipsis';
 import { faGear } from '@fortawesome/free-solid-svg-icons/faGear';
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
-import { Image, Pressable, StyleSheet, Text, type ImageSourcePropType, type PressableProps } from 'react-native';
+import { Image, Pressable, StyleSheet, Text, View, type ImageSourcePropType, type PressableProps } from 'react-native';
 
 import { WhiteBox } from '@/components/white-box';
 import { Colors } from '@/constants/theme';
 
 export type HomeEntryProps = PressableProps & {
   imageSrc: ImageSourcePropType,
-  label: string
+  label: string,
+  description?: string,
   moreButton?: boolean,
-  settingButton?: boolean
+  settingButton?: boolean,
+  onSettingPress?: () => void,
 };
 
-export function HomeEntry({ imageSrc, label, moreButton, settingButton, ...rest }: HomeEntryProps) {
+export function HomeEntry({ imageSrc, label, description, moreButton, settingButton, onSettingPress, ...rest }: HomeEntryProps) {
     return (
-        <Pressable {...rest}>
+    <Pressable style={styles.entryPressable} {...rest}>
             <WhiteBox style={styles.groupEntry}>
                 <Image
                     source={imageSrc}
                     style={styles.entryIcon}
                 />
 
-                <Text style={styles.entryLabel}>
+                <View style={styles.entryText}>
+                  <Text style={styles.entryLabel} numberOfLines={1}>
                     { label }
-                </Text>
+                  </Text>
+                  {description ? (
+                    <Text style={styles.entryDescription} numberOfLines={2}>
+                      {description}
+                    </Text>
+                  ) : null}
+                </View>
 
                 {moreButton && (
                     <Pressable style={styles.button}>
@@ -33,7 +42,12 @@ export function HomeEntry({ imageSrc, label, moreButton, settingButton, ...rest 
                 )}
 
                 {settingButton && (
-                    <Pressable style={styles.button}>
+                  <Pressable
+                    accessibilityLabel={`Edit ${label} settings`}
+                    hitSlop={8}
+                    onPress={onSettingPress}
+                    style={styles.button}
+                  >
                         <FontAwesomeIcon icon={faGear} color={Colors.interface.text} size={24} />
                     </Pressable>
                 )}
@@ -43,10 +57,15 @@ export function HomeEntry({ imageSrc, label, moreButton, settingButton, ...rest 
 }
 
 const styles = StyleSheet.create({
+  entryPressable: {
+    alignSelf: 'center',
+    width: '100%',
+    maxWidth: 420,
+  },
   groupEntry: {
     flexDirection: 'row',
     alignItems: 'center',
-    width: 360,
+    width: '100%',
     padding: 11,
     gap: 18
   },
@@ -58,6 +77,14 @@ const styles = StyleSheet.create({
   },
   entryLabel: {
     fontSize: 28
+  },
+  entryText: {
+    flex: 1,
+    gap: 2,
+  },
+  entryDescription: {
+    color: Colors.interface.text,
+    fontSize: 14,
   },
   button: {
     position: "absolute",
