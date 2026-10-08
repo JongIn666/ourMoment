@@ -13,7 +13,7 @@ help:
 	@echo "  make postgres-down Stop PostgreSQL"
 	@echo "  make postgres-logs Tail PostgreSQL logs"
 	@echo "  make postgres-shell Open psql inside the PostgreSQL container"
-	@echo "  make backend       Start PostgreSQL, then run Django on http://127.0.0.1:8010"
+	@echo "  make backend       Start PostgreSQL, then run Django on port 8010"
 	@echo "  make django        Run Django without starting PostgreSQL"
 	@echo "  make ngrok			Start Ngrok for Django tunnel"
 	@echo "  make start         Start Expo for the development build"

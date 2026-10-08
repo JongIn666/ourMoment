@@ -19,15 +19,25 @@ export default function Home() {
     const auth = useAuth();
     const router = useRouter();
     const [groups, setGroups] = useState<authApi.UserGroup[]>([]);
+    const [profile, setProfile] = useState<authApi.Profile | null>(auth.user?.profile ?? null);
     const [isLoadingGroups, setIsLoadingGroups] = useState(false);
     const [groupsError, setGroupsError] = useState<string | null>(null);
 
-    const loadGroups = useCallback(() => {
+    const loadHome = useCallback(() => {
         if (!auth.token) return () => {};
 
         let isActive = true;
         setIsLoadingGroups(true);
         setGroupsError(null);
+
+        authApi.getProfile(auth.token)
+            .then((currentProfile) => {
+                if (isActive) setProfile(currentProfile);
+            })
+            .catch(() => {
+                if (isActive && auth.user) setProfile(auth.user.profile);
+            });
+
         authApi.getGroups(auth.token)
             .then((userGroups) => {
                 if (isActive) setGroups(userGroups);
@@ -44,9 +54,9 @@ export default function Home() {
         return () => {
             isActive = false;
         };
-    }, [auth.token]);
+    }, [auth.token, auth.user]);
 
-    useFocusEffect(loadGroups);
+    useFocusEffect(loadHome);
 
     if (auth.isLoading) {
         return (
@@ -86,7 +96,7 @@ export default function Home() {
                             ) : groupsError ? (
                                 <View style={styles.stateMessage}>
                                     <Text style={styles.stateText}>{groupsError}</Text>
-                                    <Pressable onPress={loadGroups}>
+                                    <Pressable onPress={loadHome}>
                                         <Text style={styles.retryText}>Try again</Text>
                                     </Pressable>
                                 </View>
@@ -115,7 +125,9 @@ export default function Home() {
                     </View>
 
                     <HomeEntry
-                        imageSrc={require('@/assets/images/placeholder/jet-the-hmmmawk.png')}
+                        imageSrc={profile?.profilePicUrl
+                            ? { uri: profile.profilePicUrl }
+                            : require('@/assets/images/placeholder/jet-the-hmmmawk.png')}
                         label="yourMoments"
 
                         onPress={() => router.navigate('/profile')}

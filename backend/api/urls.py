@@ -13,6 +13,7 @@ from .views import (
     me,
     post_detail,
     profile,
+    profile_picture,
     register,
 )
 
@@ -25,6 +26,7 @@ urlpatterns = [
     path('auth/me/', me, name='auth-me'),
     path('auth/email/', change_email, name='auth-email'),
     path('profile/', profile, name='profile'),
+    path('profile/picture/', profile_picture, name='profile-picture'),
     path('groups/', group, name='groups'),
     path('groups/<int:group_id>/', group_detail, name='group-detail'),
     path('groups/<int:group_id>/members/me/', leave_group, name='group-leave'),

@@ -61,9 +61,9 @@ type ApiErrorBody = {
   [key: string]: unknown;
 };
 
-function authHeaders(token?: string) {
+function authHeaders(token?: string, isFormData = false) {
   return {
-    'Content-Type': 'application/json',
+    ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
     'ngrok-skip-browser-warning': 'true',
     ...(token ? { Authorization: `Token ${token}` } : {}),
   };
@@ -74,9 +74,12 @@ function readApiError(body: ApiErrorBody) {
   if (body.non_field_errors?.length) return body.non_field_errors[0];
 
   const firstFieldError = Object.values(body).find(
-    (value): value is string[] => Array.isArray(value) && typeof value[0] === 'string',
+    (value): value is string | string[] => (
+      typeof value === 'string' || (Array.isArray(value) && typeof value[0] === 'string')
+    ),
   );
-  return firstFieldError?.[0] ?? 'Something went wrong. Please try again.';
+  if (Array.isArray(firstFieldError)) return firstFieldError[0];
+  return firstFieldError ?? 'Something went wrong. Please try again.';
 }
 
 async function readApiBody(response: Response) {
@@ -93,7 +96,7 @@ async function apiFetch<T>(path: string, options: RequestInit = {}, token?: stri
     response = await fetch(`${API_URL}${path}`, {
       ...options,
       headers: {
-        ...authHeaders(token),
+        ...authHeaders(token, options.body instanceof FormData),
         ...options.headers,
       },
     });
@@ -141,6 +144,18 @@ export function googleLogin(idToken: string) {
   return apiFetch<AuthResponse>('/api/auth/google/', {
     method: 'POST',
     body: JSON.stringify({ idToken }),
+  });
+}
+
+export function googleLoginWithCode(
+  code: string,
+  codeVerifier: string,
+  redirectUri: string,
+  clientId: string,
+) {
+  return apiFetch<AuthResponse>('/api/auth/google/', {
+    method: 'POST',
+    body: JSON.stringify({ code, codeVerifier, redirectUri, clientId }),
   });
 }
 
@@ -235,6 +250,16 @@ export function updateUsername(token: string, username: string) {
   return apiFetch<Profile>('/api/profile/', {
     method: 'PATCH',
     body: JSON.stringify({ username }),
+  }, token);
+}
+
+export function updateProfilePicture(
+  token: string,
+  image: { base64: string; name: string; type: string },
+) {
+  return apiFetch<Profile>('/api/profile/picture/', {
+    method: 'POST',
+    body: JSON.stringify(image),
   }, token);
 }
 

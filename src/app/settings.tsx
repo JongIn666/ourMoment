@@ -37,6 +37,13 @@ export default function Settings() {
           onPress={() => router.navigate("/edit-email")}
         />
 
+        <LoginButton
+          text="Edit profile picture"
+          type="primary"
+          onPress={() => router.navigate("/edit-profile-picture")}
+          labelStyle={styles.profilePictureLabel}
+        />
+
         <LoginButton text="Log out" type="secondary" onPress={handleLogOut} />
       </SafeAreaViewThemed>
     </SafeAreaProvider>
@@ -50,6 +57,9 @@ const styles = StyleSheet.create({
   heading: {
     alignSelf: "flex-start",
     color: Colors.heading,
+    fontSize: 24,
+  },
+  profilePictureLabel: {
     fontSize: 24,
   },
 });

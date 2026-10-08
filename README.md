@@ -31,7 +31,7 @@ Start the backend in one terminal:
 make backend
 ```
 
-That starts PostgreSQL first, then runs Django at `http://127.0.0.1:8010`.
+That starts PostgreSQL first, then runs Django on port `8010`.
 
 Start Expo in another terminal:
 
@@ -78,11 +78,11 @@ http://127.0.0.1:8010/api/health/
 
 It checks both Django and the PostgreSQL connection.
 
-The Expo app defaults to `http://127.0.0.1:8010` on iOS/web and `http://10.0.2.2:8010` on Android emulator. Override it with `EXPO_PUBLIC_API_URL` when needed:
+The Expo app defaults to a backend URL derived from the Expo dev-server host, with simulator fallbacks for iOS/web and Android emulator. Override it with `EXPO_PUBLIC_API_URL` when needed:
 
 ```bash
 # Terminal 1
-backend/.venv/bin/python backend/manage.py runserver 0.0.0.0:8010
+make backend
 
 # Terminal 2
 EXPO_PUBLIC_API_URL=http://YOUR_LAN_IP:8010 npm start
