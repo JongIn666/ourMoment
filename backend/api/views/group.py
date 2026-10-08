@@ -5,7 +5,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework import status
 
-from ..models.group import Group
+from ..models.group import Group, GroupMember
 from ..serializers import GroupSerializer
 
 @api_view(['GET', 'POST'])
@@ -49,3 +49,14 @@ def group_detail(request, group_id):
         return Response(status=204)
 
     return Response(GroupSerializer(user_group).data)
+
+
+@api_view(['DELETE'])
+@permission_classes([IsAuthenticated])
+def leave_group(request, group_id):
+    membership = get_object_or_404(
+        GroupMember.objects.filter(user=request.user),
+        group_id=group_id,
+    )
+    membership.delete()
+    return Response(status=status.HTTP_204_NO_CONTENT)

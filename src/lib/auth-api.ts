@@ -43,6 +43,7 @@ export type GroupMember = {
   username: string;
   profile: {
     displayName: string;
+    bio: string;
     birthday: string | null;
     showAge: boolean;
     showBirthday: boolean;
@@ -210,6 +211,12 @@ export function updateGroup(
 
 export function deleteGroup(token: string, groupId: number) {
   return apiFetch<void>(`/api/groups/${groupId}/`, {
+    method: 'DELETE',
+  }, token);
+}
+
+export function leaveGroup(token: string, groupId: number) {
+  return apiFetch<void>(`/api/groups/${groupId}/members/me/`, {
     method: 'DELETE',
   }, token);
 }

@@ -86,6 +86,9 @@ export default function GroupMembers() {
                       {member.profile.displayName}
                     </Text>
                     <Text style={styles.username} numberOfLines={1}>@{member.username}</Text>
+                    {member.profile.bio.trim().length > 0 && (
+                      <Text style={styles.bio}>{member.profile.bio}</Text>
+                    )}
                     {details.length > 0 && <Text style={styles.birthday}>{details.join(' · ')}</Text>}
                   </View>
                 </WhiteBox>
@@ -172,6 +175,11 @@ const styles = StyleSheet.create({
   username: {
     color: Colors.interface.text,
     fontSize: 14,
+  },
+  bio: {
+    color: Colors.interface.text,
+    fontSize: 14,
+    marginTop: 4,
   },
   birthday: {
     color: Colors.interface.text,

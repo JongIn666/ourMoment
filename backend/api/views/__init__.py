@@ -1,10 +1,10 @@
 from .auth import change_email, google_login, login, logout, me, register
 from .health import health
 from .profile import profile
-from .group import group, group_detail
+from .group import group, group_detail, leave_group
 from .post import group_posts, post_detail
 
 __all__ = [
-	'health', 'login', 'logout', 'me', 'profile', 'register', 'group', 'group_detail',
+	'health', 'login', 'logout', 'me', 'profile', 'register', 'group', 'group_detail', 'leave_group',
 	'group_posts', 'post_detail', 'change_email', 'google_login',
 ]

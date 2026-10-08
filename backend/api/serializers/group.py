@@ -20,6 +20,7 @@ class GroupMemberSerializer(serializers.ModelSerializer):
         except Profile.DoesNotExist:
             return {
                 'displayName': '',
+                'bio': '',
                 'birthday': None,
                 'showAge': False,
                 'showBirthday': False,
@@ -27,6 +28,7 @@ class GroupMemberSerializer(serializers.ModelSerializer):
 
         return {
             'displayName': profile.displayName,
+            'bio': profile.bio,
             'birthday': profile.birthday,
             'showAge': profile.showAge,
             'showBirthday': profile.showBirthday,

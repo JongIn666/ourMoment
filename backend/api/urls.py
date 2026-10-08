@@ -5,6 +5,7 @@ from .views import (
     google_login,
     group,
     group_detail,
+    leave_group,
     group_posts,
     health,
     login,
@@ -26,6 +27,7 @@ urlpatterns = [
     path('profile/', profile, name='profile'),
     path('groups/', group, name='groups'),
     path('groups/<int:group_id>/', group_detail, name='group-detail'),
+    path('groups/<int:group_id>/members/me/', leave_group, name='group-leave'),
     path('groups/<int:group_id>/posts/', group_posts, name='group-posts'),
     path('posts/<int:post_id>/', post_detail, name='post-detail'),
 ]
