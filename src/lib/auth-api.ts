@@ -45,25 +45,42 @@ function readApiError(body: ApiErrorBody) {
   return firstFieldError?.[0] ?? 'Something went wrong. Please try again.';
 }
 
+async function readApiBody(response: Response) {
+  try {
+    return (await response.json()) as ApiErrorBody;
+  } catch {
+    return null;
+  }
+}
+
 async function apiFetch<T>(path: string, options: RequestInit = {}, token?: string): Promise<T> {
-  const response = await fetch(`${API_URL}${path}`, {
-    ...options,
-    headers: {
-      ...authHeaders(token),
-      ...options.headers,
-    },
-  });
+  let response: Response;
+  try {
+    response = await fetch(`${API_URL}${path}`, {
+      ...options,
+      headers: {
+        ...authHeaders(token),
+        ...options.headers,
+      },
+    });
+  } catch {
+    throw new Error('Unable to reach the server. Check your connection and try again.');
+  }
 
   if (response.status === 204) {
     return undefined as T;
   }
 
-  const data = await response.json();
+  const data = await readApiBody(response);
+  if (!data) {
+    throw new Error('Something went wrong. Please try again.');
+  }
+
   if (!response.ok) {
     throw new Error(readApiError(data));
   }
 
-  return data;
+  return data as T;
 }
 
 export function login(identifier: string, password: string) {
