@@ -100,7 +100,7 @@ export default function LogIn() {
                             </LoginError>
                         )}
 
-                        <Link style={ styles.forgotLink } href="https://www.youtube.com/watch?v=dQw4w9WgXcQ">Forgot password?</Link>
+                        <Link style={ styles.forgotLink } href="/forgot-password">Forgot password?</Link>
                     </LoginPanel>
 
                     <LoginButton

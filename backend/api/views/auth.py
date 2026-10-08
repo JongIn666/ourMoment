@@ -20,6 +20,8 @@ from ..serializers.auth import (
     ChangeEmailSerializer,
     LoginSerializer,
     RegisterSerializer,
+    ResetPasswordIdentifierSerializer,
+    ResetPasswordSerializer,
     UserSerializer,
 )
 
@@ -55,6 +57,23 @@ def login(request):
     serializer = LoginSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
     return auth_response(serializer.validated_data['user'])
+
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def reset_password(request):
+    serializer = ResetPasswordSerializer(data=request.data)
+    serializer.is_valid(raise_exception=True)
+    serializer.save()
+    return Response({'detail': 'Password updated.'}, status=status.HTTP_200_OK)
+
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def reset_password_check(request):
+    serializer = ResetPasswordIdentifierSerializer(data=request.data)
+    serializer.is_valid(raise_exception=True)
+    return Response({'detail': 'Account found.'}, status=status.HTTP_200_OK)
 
 
 def verify_google_id_token(id_token):

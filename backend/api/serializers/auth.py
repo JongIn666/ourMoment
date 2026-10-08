@@ -1,5 +1,6 @@
 from django.contrib.auth import authenticate, get_user_model
 from django.contrib.auth.password_validation import validate_password
+from django.db.models import Q
 from rest_framework import serializers
 
 from ..models.profile import Profile
@@ -92,3 +93,42 @@ class LoginSerializer(serializers.Serializer):
 
         attrs['user'] = user
         return attrs
+
+
+class ResetPasswordSerializer(serializers.Serializer):
+    identifier = serializers.CharField()
+    password = serializers.CharField(write_only=True, min_length=8)
+    confirmPassword = serializers.CharField(write_only=True, min_length=8)
+
+    def validate_password(self, value):
+        validate_password(value)
+        return value
+
+    def validate(self, attrs):
+        identifier = attrs['identifier']
+        user = User.objects.filter(
+            Q(username__iexact=identifier) | Q(email__iexact=identifier)
+        ).first()
+
+        if user is None:
+            raise serializers.ValidationError('No account found with that username or email.')
+        if attrs['password'] != attrs['confirmPassword']:
+            raise serializers.ValidationError('Passwords do not match.')
+
+        attrs['user'] = user
+        return attrs
+
+    def save(self, **kwargs):
+        user = self.validated_data['user']
+        user.set_password(self.validated_data['password'])
+        user.save(update_fields=['password'])
+        return user
+
+
+class ResetPasswordIdentifierSerializer(serializers.Serializer):
+    identifier = serializers.CharField()
+
+    def validate_identifier(self, value):
+        if not User.objects.filter(Q(username__iexact=value) | Q(email__iexact=value)).exists():
+            raise serializers.ValidationError('No account found with that username or email.')
+        return value
