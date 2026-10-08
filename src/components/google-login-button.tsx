@@ -1,8 +1,7 @@
-import { ResponseType } from 'expo-auth-session';
 import * as Google from 'expo-auth-session/providers/google';
 import * as WebBrowser from 'expo-web-browser';
 import { useRouter } from 'expo-router';
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { LoginButton } from '@/components/login-button';
@@ -13,67 +12,53 @@ import { useAuth } from '@/context/auth';
 WebBrowser.maybeCompleteAuthSession();
 
 export function GoogleLoginButton() {
-    const { signInWithGoogle } = useAuth();
+    const { signInWithGoogleCode } = useAuth();
     const router = useRouter();
 
     const [error, setError] = useState<string | null>(null);
     const [isSigningIn, setIsSigningIn] = useState(false);
-    const handledIdTokenRef = useRef<string | null>(null);
 
-    const [request, response, promptAsync] = Google.useAuthRequest({
+    const [request, , promptAsync] = Google.useAuthRequest({
         iosClientId: GOOGLE_IOS_CLIENT_ID,
-        responseType: ResponseType.IdToken,
+        shouldAutoExchangeCode: false,
     });
 
-    useEffect(() => {
-        let isActive = true;
+    async function handleGooglePress() {
+        if (!request || isSigningIn) return;
 
-        async function handleResponse() {
-            if (response?.type === 'error') {
-                if (isActive) {
-                    setError('Google sign-in was not completed. Please try again.');
-                }
+        setError(null);
+        setIsSigningIn(true);
+
+        try {
+            const result = await promptAsync({ preferEphemeralSession: true });
+            if (result.type === 'cancel' || result.type === 'dismiss') {
                 return;
             }
-            if (response?.type !== 'success') return;
-
-            const idToken = response.params.id_token ?? response.authentication?.idToken;
-            if (!idToken) {
-                if (isActive) {
-                    setError('Google did not return an ID token. Please try again.');
-                }
+            if (result.type === 'error') {
+                setError('Google sign-in was not completed. Please try again.');
                 return;
             }
-            if (handledIdTokenRef.current === idToken) return;
+            if (result.type !== 'success') return;
 
-            handledIdTokenRef.current = idToken;
-            if (isActive) {
-                setIsSigningIn(true);
+            const code = result.params.code;
+            if (!code || !request.codeVerifier || !request.redirectUri) {
+                setError('Google did not return everything needed to finish sign-in. Please try again.');
+                return;
             }
 
-            try {
-                await signInWithGoogle(idToken);
-                if (isActive) {
-                    router.replace('/home');
-                }
-            } catch (caughtError: unknown) {
-                handledIdTokenRef.current = null;
-                if (isActive) {
-                    setError(caughtError instanceof Error ? caughtError.message : 'Unable to sign in with Google.');
-                }
-            } finally {
-                if (isActive) {
-                    setIsSigningIn(false);
-                }
-            }
+            await signInWithGoogleCode(
+                code,
+                request.codeVerifier,
+                request.redirectUri,
+                GOOGLE_IOS_CLIENT_ID,
+            );
+            router.replace('/home');
+        } catch (caughtError: unknown) {
+            setError(caughtError instanceof Error ? caughtError.message : 'Unable to sign in with Google.');
+        } finally {
+            setIsSigningIn(false);
         }
-
-        void handleResponse();
-
-        return () => {
-            isActive = false;
-        };
-    }, [response, router, signInWithGoogle]);
+    }
 
     return (
         <View style={styles.container}>
@@ -82,16 +67,7 @@ export function GoogleLoginButton() {
                 type="secondary"
                 labelStyle={styles.label}
                 disabled={!request || isSigningIn}
-                onPress={() => {
-                    setError(null);
-                    void promptAsync({ preferEphemeralSession: true }).catch((caughtError: unknown) => {
-                        setError(
-                            caughtError instanceof Error
-                                ? caughtError.message
-                                : 'Google sign-in could not be started. Please try again.',
-                        );
-                    });
-                }}
+                onPress={() => void handleGooglePress()}
             />
 
             {error && (

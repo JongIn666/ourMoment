@@ -1,7 +1,7 @@
 import json
-from urllib.error import URLError
+from urllib.error import HTTPError, URLError
 from urllib.parse import urlencode
-from urllib.request import urlopen
+from urllib.request import Request, urlopen
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
@@ -26,6 +26,7 @@ from ..serializers.auth import (
 User = get_user_model()
 
 GOOGLE_TOKENINFO_URL = 'https://oauth2.googleapis.com/tokeninfo'
+GOOGLE_TOKEN_URL = 'https://oauth2.googleapis.com/token'
 
 
 def auth_response(user, response_status=status.HTTP_200_OK):
@@ -73,6 +74,61 @@ def verify_google_id_token(id_token):
     return payload
 
 
+def parse_google_error(error):
+    try:
+        body = json.loads(error.read().decode())
+    except (ValueError, OSError):
+        return 'Could not exchange your Google sign-in. Please try again.'
+
+    description = body.get('error_description') or body.get('error')
+    if description:
+        return f'Google could not complete sign-in: {description}'
+    return 'Could not exchange your Google sign-in. Please try again.'
+
+
+def exchange_google_auth_code(code, code_verifier, redirect_uri, client_id):
+    if not code:
+        raise ValidationError('No Google authorization code was provided.')
+    if not code_verifier:
+        raise ValidationError('No Google code verifier was provided.')
+    if not redirect_uri:
+        raise ValidationError('No Google redirect URI was provided.')
+    if not client_id:
+        raise ValidationError('No Google client ID was provided.')
+    if settings.GOOGLE_CLIENT_IDS and client_id not in settings.GOOGLE_CLIENT_IDS:
+        raise ValidationError('That Google sign-in was not meant for this app.')
+
+    body = urlencode({
+        'grant_type': 'authorization_code',
+        'code': code,
+        'client_id': client_id,
+        'code_verifier': code_verifier,
+        'redirect_uri': redirect_uri,
+    }).encode()
+    request = Request(
+        GOOGLE_TOKEN_URL,
+        data=body,
+        headers={
+            'Accept': 'application/json',
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        method='POST',
+    )
+
+    try:
+        with urlopen(request, timeout=10) as response:
+            token_payload = json.loads(response.read().decode())
+    except HTTPError as error:
+        raise ValidationError(parse_google_error(error))
+    except (URLError, ValueError, OSError):
+        raise ValidationError('Could not exchange your Google sign-in. Please try again.')
+
+    id_token = token_payload.get('id_token')
+    if not id_token:
+        raise ValidationError('Google did not return an ID token. Please try again.')
+    return id_token
+
+
 def display_name_from_google(name, fallback):
     cleaned = ''.join(
         character for character in name
@@ -97,7 +153,12 @@ def unique_username_from_email(email):
 def google_login(request):
     id_token = request.data.get('idToken')
     if not id_token:
-        raise ValidationError('No Google ID token was provided.')
+        id_token = exchange_google_auth_code(
+            request.data.get('code'),
+            request.data.get('codeVerifier'),
+            request.data.get('redirectUri'),
+            request.data.get('clientId'),
+        )
 
     payload = verify_google_id_token(id_token)
     email = payload['email']

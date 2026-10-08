@@ -146,6 +146,18 @@ export function googleLogin(idToken: string) {
   });
 }
 
+export function googleLoginWithCode(
+  code: string,
+  codeVerifier: string,
+  redirectUri: string,
+  clientId: string,
+) {
+  return apiFetch<AuthResponse>('/api/auth/google/', {
+    method: 'POST',
+    body: JSON.stringify({ code, codeVerifier, redirectUri, clientId }),
+  });
+}
+
 export function getCurrentUser(token: string) {
   return apiFetch<AuthUser>('/api/auth/me/', {}, token);
 }

@@ -1,6 +1,8 @@
 import base64
 import binascii
+import logging
 import uuid
+from urllib.parse import unquote, urlparse
 
 from django.conf import settings
 from django.core.files.base import ContentFile
@@ -15,6 +17,8 @@ from rest_framework.response import Response
 from ..models.profile import Profile
 from ..serializers import ProfileSerializer
 
+logger = logging.getLogger(__name__)
+
 PROFILE_PICTURE_TYPES = {
     'image/jpeg': 'jpg',
     'image/png': 'png',
@@ -24,20 +28,63 @@ PROFILE_PICTURE_TYPES = {
 PROFILE_PICTURE_MAX_BYTES = 5 * 1024 * 1024
 
 
+def get_s3_client():
+    try:
+        import boto3
+    except ImportError as error:
+        raise APIException('S3 uploads are not installed. Run pip install -r backend/requirements.txt.') from error
+
+    return boto3.client(
+        's3',
+        region_name=settings.AWS_REGION,
+        aws_access_key_id=settings.AWS_ACCESS_KEY_ID or None,
+        aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY or None,
+    )
+
+
+def get_s3_key_from_profile_picture_url(profile_picture_url):
+    if not settings.AWS_S3_BUCKET or not profile_picture_url:
+        return None
+
+    parsed_url = urlparse(profile_picture_url)
+    bucket_host_prefix = f'{settings.AWS_S3_BUCKET}.s3.'
+    bucket_host = f'{settings.AWS_S3_BUCKET}.s3.amazonaws.com'
+
+    if parsed_url.netloc == bucket_host or parsed_url.netloc.startswith(bucket_host_prefix):
+        return unquote(parsed_url.path.lstrip('/')) or None
+
+    path_prefix = f'/{settings.AWS_S3_BUCKET}/'
+    if parsed_url.netloc.startswith('s3.') and parsed_url.path.startswith(path_prefix):
+        return unquote(parsed_url.path.removeprefix(path_prefix)) or None
+
+    return None
+
+
+def delete_replaced_profile_picture(profile_picture_url):
+    key = get_s3_key_from_profile_picture_url(profile_picture_url)
+    if key is None:
+        return
+
+    try:
+        from botocore.exceptions import BotoCoreError, ClientError
+    except ImportError:
+        logger.warning('Could not delete replaced profile picture because botocore is not installed.')
+        return
+
+    try:
+        get_s3_client().delete_object(Bucket=settings.AWS_S3_BUCKET, Key=key)
+    except (BotoCoreError, ClientError):
+        logger.exception('Could not delete replaced profile picture from S3: %s', key)
+
+
 def save_profile_picture(image, key):
     if settings.AWS_S3_BUCKET:
         try:
-            import boto3
             from botocore.exceptions import BotoCoreError, ClientError
         except ImportError as error:
             raise APIException('S3 uploads are not installed. Run pip install -r backend/requirements.txt.') from error
 
-        client = boto3.client(
-            's3',
-            region_name=settings.AWS_REGION,
-            aws_access_key_id=settings.AWS_ACCESS_KEY_ID or None,
-            aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY or None,
-        )
+        client = get_s3_client()
         try:
             client.upload_fileobj(
                 image,
@@ -115,9 +162,14 @@ def profile_picture(request):
     picture_url = save_profile_picture(image, key)
 
     user_profile, _ = Profile.objects.get_or_create(user=request.user)
+    old_profile_pic_url = user_profile.profilePicUrl
     if picture_url.startswith('http'):
         user_profile.profilePicUrl = picture_url
     else:
         user_profile.profilePicUrl = request.build_absolute_uri(picture_url)
     user_profile.save(update_fields=['profilePicUrl'])
+
+    if old_profile_pic_url != user_profile.profilePicUrl:
+        delete_replaced_profile_picture(old_profile_pic_url)
+
     return Response(ProfileSerializer(user_profile).data)
