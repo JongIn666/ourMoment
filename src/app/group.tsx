@@ -136,7 +136,9 @@ export default function Group() {
                                     key={post.id}
                                     date={postDate}
                                     startOfDate={startsNewDate}
-                                    userIcon={require('@/assets/images/placeholder/jet-the-hmmmawk.png')}
+                                    userIcon={post.author.profilePicUrl
+                                        ? { uri: post.author.profilePicUrl }
+                                        : require('@/assets/images/placeholder/jet-the-hmmmawk.png')}
                                     excerpt={`@${post.author.username}\n${post.content}`}
                                     tags={[]}
                                     emojiReacts={[]}

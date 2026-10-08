@@ -78,7 +78,9 @@ export default function GroupMembers() {
               return (
                 <WhiteBox key={member.id} style={styles.memberRow}>
                   <Image
-                    source={require('@/assets/images/placeholder/jet-the-hmmmawk.png')}
+                    source={member.profile.profilePicUrl
+                      ? { uri: member.profile.profilePicUrl }
+                      : require('@/assets/images/placeholder/jet-the-hmmmawk.png')}
                     style={styles.avatar}
                   />
                   <View style={styles.memberInfo}>

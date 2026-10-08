@@ -31,6 +31,7 @@ export type UserPost = {
   author: {
     id: number;
     username: string;
+    profilePicUrl: string;
   };
   group: number;
   createdAt: string;
@@ -43,6 +44,7 @@ export type GroupMember = {
   username: string;
   profile: {
     displayName: string;
+    profilePicUrl: string;
     bio: string;
     birthday: string | null;
     showAge: boolean;

@@ -20,6 +20,7 @@ class GroupMemberSerializer(serializers.ModelSerializer):
         except Profile.DoesNotExist:
             return {
                 'displayName': '',
+                'profilePicUrl': '',
                 'bio': '',
                 'birthday': None,
                 'showAge': False,
@@ -28,6 +29,7 @@ class GroupMemberSerializer(serializers.ModelSerializer):
 
         return {
             'displayName': profile.displayName,
+            'profilePicUrl': profile.profilePicUrl,
             'bio': profile.bio,
             'birthday': profile.birthday,
             'showAge': profile.showAge,

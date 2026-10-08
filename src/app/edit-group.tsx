@@ -30,7 +30,9 @@ export default function EditGroup() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isLeaving, setIsLeaving] = useState(false);
   const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
+  const [showLeaveConfirmation, setShowLeaveConfirmation] = useState(false);
   const [errorPopup, setErrorPopup] = useState<{ title: string; message: string } | null>(null);
 
   useEffect(() => {
@@ -130,6 +132,31 @@ export default function EditGroup() {
     }
   }
 
+  async function handleLeave() {
+    const id = Number(groupId);
+    if (!token || !Number.isInteger(id) || id <= 0) {
+      setShowLeaveConfirmation(false);
+      setErrorPopup({ title: 'Group unavailable', message: 'This group could not be found.' });
+      return;
+    }
+
+    setIsLeaving(true);
+    try {
+      await authApi.leaveGroup(token, id);
+      setShowLeaveConfirmation(false);
+      router.dismissAll();
+      router.replace('/home');
+    } catch (caughtError) {
+      setShowLeaveConfirmation(false);
+      setErrorPopup({
+        title: 'Could not leave group',
+        message: caughtError instanceof Error ? caughtError.message : 'Please try again.',
+      });
+    } finally {
+      setIsLeaving(false);
+    }
+  }
+
   return (
     <SafeAreaProvider>
       <SafeAreaViewThemed style={styles.screen}>
@@ -180,17 +207,27 @@ export default function EditGroup() {
               <LoginButton
                 text={isSaving ? 'Saving…' : 'Save changes'}
                 type="primary"
-                disabled={isSaving || isDeleting}
+                disabled={isSaving || isDeleting || isLeaving}
                 onPress={handleSave}
               />
               <Pressable
                 accessibilityRole="button"
-                disabled={isSaving || isDeleting}
+                disabled={isSaving || isDeleting || isLeaving}
                 onPress={() => setShowDeleteConfirmation(true)}
                 style={styles.deleteButton}
               >
                 <Text style={styles.deleteButtonText}>
                   {isDeleting ? 'Deleting…' : 'Delete group'}
+                </Text>
+              </Pressable>
+              <Pressable
+                accessibilityRole="button"
+                disabled={isSaving || isDeleting || isLeaving}
+                onPress={() => setShowLeaveConfirmation(true)}
+                style={styles.leaveButton}
+              >
+                <Text style={styles.deleteButtonText}>
+                  {isLeaving ? 'Leaving…' : 'Leave group'}
                 </Text>
               </Pressable>
             </View>
@@ -217,7 +254,7 @@ export default function EditGroup() {
 
       <Modal
         animationType="fade"
-        onRequestClose={() => setShowDeleteConfirmation(false)}
+        onRequestClose={() => !isDeleting && setShowDeleteConfirmation(false)}
         transparent
         visible={showDeleteConfirmation}
       >
@@ -244,6 +281,42 @@ export default function EditGroup() {
               >
                 <Text style={styles.confirmDeleteButtonText}>
                   {isDeleting ? 'Deleting…' : 'Delete'}
+                </Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal
+        animationType="fade"
+        onRequestClose={() => !isLeaving && setShowLeaveConfirmation(false)}
+        transparent
+        visible={showLeaveConfirmation}
+      >
+        <View style={styles.modalBackdrop}>
+          <View accessibilityViewIsModal style={styles.errorDialog}>
+            <Text accessibilityRole="header" style={styles.errorTitle}>Leave this group?</Text>
+            <Text style={styles.errorMessage}>
+              You will leave “{name}” and lose access to its posts and members.
+            </Text>
+            <View style={styles.confirmationActions}>
+              <Pressable
+                accessibilityRole="button"
+                disabled={isLeaving}
+                onPress={() => setShowLeaveConfirmation(false)}
+                style={styles.cancelButton}
+              >
+                <Text style={styles.cancelButtonText}>Cancel</Text>
+              </Pressable>
+              <Pressable
+                accessibilityRole="button"
+                disabled={isLeaving}
+                onPress={handleLeave}
+                style={styles.confirmDeleteButton}
+              >
+                <Text style={styles.confirmDeleteButtonText}>
+                  {isLeaving ? 'Leaving…' : 'Leave group'}
                 </Text>
               </Pressable>
             </View>
@@ -315,6 +388,17 @@ const styles = StyleSheet.create({
     color: '#A12E2E',
     fontSize: 16,
     fontWeight: '700',
+  },
+  leaveButton: {
+    minHeight: 48,
+    minWidth: 180,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderColor: '#A12E2E',
+    borderWidth: 1,
+    paddingHorizontal: 18,
+    paddingVertical: 10,
+    opacity: 0.8,
   },
   modalBackdrop: {
     flex: 1,

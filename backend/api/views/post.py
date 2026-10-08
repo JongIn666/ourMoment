@@ -27,7 +27,7 @@ def group_posts(request, group_id):
 
     posts = (
         Post.objects.filter(group=group)
-        .select_related('author')
+        .select_related('author', 'author__profile')
         .order_by('-createdAt')
     )
     return Response(PostSerializer(posts, many=True).data)

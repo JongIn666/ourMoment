@@ -2,14 +2,23 @@ from django.contrib.auth import get_user_model
 from rest_framework import serializers
 
 from ..models.post import Post
+from ..models.profile import Profile
 
 User = get_user_model()
 
 
 class PostAuthorSerializer(serializers.ModelSerializer):
+    profilePicUrl = serializers.SerializerMethodField()
+
     class Meta:
         model = User
-        fields = ['id', 'username']
+        fields = ['id', 'username', 'profilePicUrl']
+
+    def get_profilePicUrl(self, user):
+        try:
+            return user.profile.profilePicUrl
+        except Profile.DoesNotExist:
+            return ''
 
 
 class PostSerializer(serializers.ModelSerializer):
