@@ -38,7 +38,8 @@
           "fonts": ["node_modules/@expo-google-fonts/noto-sans/400Regular/NotoSans_400Regular.ttf"]
         }
       ],
-      "expo-secure-store"
+      "expo-secure-store",
+      "@react-native-community/datetimepicker"
     ],
     "experiments": {
       "typedRoutes": true,

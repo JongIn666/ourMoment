@@ -26,6 +26,18 @@ export type UserGroup = {
   createdAt: string;
 };
 
+export type UserPost = {
+  id: number;
+  author: {
+    id: number;
+    username: string;
+  };
+  group: number;
+  createdAt: string;
+  content: string;
+  editedAt: string | null;
+};
+
 export type GroupMember = {
   id: number;
   username: string;
@@ -155,6 +167,34 @@ export function createGroup(
 
 export function getGroup(token: string, groupId: number) {
   return apiFetch<UserGroup>(`/api/groups/${groupId}/`, {}, token);
+}
+
+export function getGroupPosts(token: string, groupId: number) {
+  return apiFetch<UserPost[]>(`/api/groups/${groupId}/posts/`, {}, token);
+}
+
+export function createPost(
+  token: string,
+  groupId: number,
+  post: Pick<UserPost, 'content' | 'createdAt'>,
+) {
+  return apiFetch<UserPost>(`/api/groups/${groupId}/posts/`, {
+    method: 'POST',
+    body: JSON.stringify(post),
+  }, token);
+}
+
+export function deletePost(token: string, postId: number) {
+  return apiFetch<void>(`/api/posts/${postId}/`, {
+    method: 'DELETE',
+  }, token);
+}
+
+export function updatePost(token: string, postId: number, content: string, createdAt: string) {
+  return apiFetch<UserPost>(`/api/posts/${postId}/`, {
+    method: 'PATCH',
+    body: JSON.stringify({ content, createdAt }),
+  }, token);
 }
 
 export function updateGroup(

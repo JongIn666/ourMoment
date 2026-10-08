@@ -11,6 +11,7 @@ import { faUserGroup } from '@fortawesome/free-solid-svg-icons/faUserGroup';
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
 
 import { BackButtonView } from '@/components/back-button-view';
+import { AddButton } from '@/components/add-button';
 import { HomeEntry } from '@/components/home-entry';
 import { Timeline } from '@/components/timeline';
 import { TimelinePost } from '@/components/timeline-post';
@@ -20,8 +21,9 @@ import * as authApi from '@/lib/auth-api';
 export default function Group() {
     const router = useRouter();
     const { groupId } = useLocalSearchParams<{ groupId?: string }>();
-    const { token } = useAuth();
+    const { token, user } = useAuth();
     const [group, setGroup] = useState<authApi.UserGroup | null>(null);
+    const [posts, setPosts] = useState<authApi.UserPost[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
@@ -39,9 +41,15 @@ export default function Group() {
 
             setIsLoading(true);
             setError(null);
-            authApi.getGroup(token, id)
-                .then((currentGroup) => {
-                    if (isActive) setGroup(currentGroup);
+            Promise.all([
+                authApi.getGroup(token, id),
+                authApi.getGroupPosts(token, id),
+            ])
+                .then(([currentGroup, currentPosts]) => {
+                    if (isActive) {
+                        setGroup(currentGroup);
+                        setPosts(currentPosts);
+                    }
                 })
                 .catch((caughtError: unknown) => {
                     if (isActive) {
@@ -109,36 +117,62 @@ export default function Group() {
                     <Timeline/>
 
                     <View style={styles.postsContain}>
-                        <TimelinePost
-                            date={new Date(2026,6,15,10,35)}
-                            startOfDate
-                            userIcon={require('@/assets/images/placeholder/jet-the-hmmmawk.png')}
-                            excerpt={"Blaze and I agree! Blaze is my friend, and Amy's my friend...."}
-                            tags={['tag1', 'tag2']}
-                            emojiReacts={[{emoji: {name: 'heart', type: 'unicode', unicode: '❤️'}, count: 1}]}
-                            commentNum={2}
-                        />
+                        {isLoading ? (
+                            <View style={styles.postsState}>
+                                <ActivityIndicator color={Colors.heading} />
+                            </View>
+                        ) : error ? (
+                            <Text style={styles.postsEmpty}>{error}</Text>
+                        ) : posts.length === 0 ? (
+                            <Text style={styles.postsEmpty}>No posts in this group yet.</Text>
+                        ) : posts.map((post, index) => {
+                            const postDate = new Date(post.createdAt);
+                            const previousDate = index > 0 ? new Date(posts[index - 1].createdAt) : null;
+                            const startsNewDate = !previousDate ||
+                                postDate.toDateString() !== previousDate.toDateString();
 
-                        <TimelinePost
-                            date={new Date(2026,6,15,19,35)}
-                            userIcon={require('@/assets/images/placeholder/jet-the-hmmmawk.png')}
-                            excerpt={"Blaze and I agree! Blaze is my friend, and Amy's my friend...."}
-                            tags={['tag1', 'tag2']}
-                            emojiReacts={[{emoji: {name: 'heart', type: 'unicode', unicode: '❤️'}, count: 1}]}
-                            commentNum={2}
-                        />
-
-                        <TimelinePost
-                            date={new Date(2026,6,30,7,35)}
-                            startOfDate
-                            userIcon={require('@/assets/images/placeholder/jet-the-hmmmawk.png')}
-                            excerpt={"Blaze and I agree! Blaze is my friend, and Amy's my friend...."}
-                            tags={['tag1', 'tag2']}
-                            emojiReacts={[{emoji: {name: 'heart', type: 'unicode', unicode: '❤️'}, count: 1}]}
-                            commentNum={2}
-                        />
+                            return (
+                                <TimelinePost
+                                    key={post.id}
+                                    date={postDate}
+                                    startOfDate={startsNewDate}
+                                    userIcon={require('@/assets/images/placeholder/jet-the-hmmmawk.png')}
+                                    excerpt={`@${post.author.username}\n${post.content}`}
+                                    tags={[]}
+                                    emojiReacts={[]}
+                                    commentNum={0}
+                                    isOwnPost={post.author.id === user?.id}
+                                    onDelete={async () => {
+                                        if (!token) throw new Error('Please sign in again to delete this post.');
+                                        await authApi.deletePost(token, post.id);
+                                        setPosts((currentPosts) => currentPosts.filter(({ id }) => id !== post.id));
+                                    }}
+                                    onEditPress={() => {
+                                        router.push({
+                                            pathname: '/edit-post',
+                                            params: {
+                                                postId: String(post.id),
+                                                groupId: String(post.group),
+                                                content: post.content,
+                                                createdAt: post.createdAt,
+                                            },
+                                        });
+                                    }}
+                                />
+                            );
+                        })}
                     </View>
                 </ScrollView>
+                {group && (
+                    <AddButton
+                        accessibilityLabel="Create post"
+                        onPress={() => router.push({
+                            pathname: '/create-post',
+                            params: { groupId: String(group.id) },
+                        })}
+                        style={styles.addPostButton}
+                    />
+                )}
             </SafeAreaViewThemed>
         </SafeAreaProvider>
     )
@@ -157,6 +191,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 10
   },
+    addPostButton: {
+        position: 'absolute',
+        right: 20,
+        bottom: 20,
+    },
   mainContainer: {
     flexDirection: 'row',
     gap: 10
@@ -166,6 +205,15 @@ const styles = StyleSheet.create({
   },
   postsContain: {
     flexShrink: 1
+    },
+    postsState: {
+        alignItems: 'center',
+        paddingVertical: 20,
+    },
+    postsEmpty: {
+        color: Colors.interface.text,
+        padding: 16,
+        textAlign: 'center',
     },
     groupStatus: {
         alignItems: 'center',
