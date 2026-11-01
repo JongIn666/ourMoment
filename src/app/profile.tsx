@@ -215,7 +215,8 @@ const styles = StyleSheet.create({
   },
   timelineContainer: {
     flexDirection: 'row',
-    gap: 10
+    gap: 10,
+    paddingBottom: 25
   },
   timelineContainerSelf: {
     width: "100%"

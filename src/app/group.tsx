@@ -10,8 +10,8 @@ import { faFilter } from '@fortawesome/free-solid-svg-icons/faFilter';
 import { faUserGroup } from '@fortawesome/free-solid-svg-icons/faUserGroup';
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
 
-import { BackButtonView } from '@/components/back-button-view';
 import { AddButton } from '@/components/add-button';
+import { BackButtonView } from '@/components/back-button-view';
 import { HomeEntry } from '@/components/home-entry';
 import { Timeline } from '@/components/timeline';
 import { TimelinePost } from '@/components/timeline-post';
@@ -200,7 +200,8 @@ const styles = StyleSheet.create({
     },
   mainContainer: {
     flexDirection: 'row',
-    gap: 10
+    gap: 10,
+    paddingBottom: 25
   },
   mainContainerSelf: {
     width: "100%"

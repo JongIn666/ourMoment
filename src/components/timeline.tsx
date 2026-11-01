@@ -12,7 +12,6 @@ const styles = StyleSheet.create({
   timeLine: {
     backgroundColor: Colors.timeLine,
     width: 30,
-    height: 1000,
     borderRadius: 50,
     marginLeft: 50
   }
