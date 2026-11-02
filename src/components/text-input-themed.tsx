@@ -1,10 +1,10 @@
 import { Colors } from '@/constants/theme';
 import { StyleSheet, TextInput, type TextInputProps } from 'react-native';
 
-export function TextInputThemed({ ...rest }: TextInputProps) {
+export function TextInputThemed({style, ...rest }: TextInputProps) {
     return (
         <TextInput
-            style={ styles.input }
+            style={[ styles.input , style]}
             placeholderTextColor={Colors.interface.text}
             { ...rest }
         />
