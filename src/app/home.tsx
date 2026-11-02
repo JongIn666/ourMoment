@@ -2,22 +2,17 @@ import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
 
 import { SafeAreaViewThemed } from '@/components/safe-area-themed';
-import { ActivityIndicator, Image, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { faGear } from '@fortawesome/free-solid-svg-icons/faGear';
-import { faUpload } from '@fortawesome/free-solid-svg-icons/faUpload';
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
 
 import { AddButton } from '@/components/add-button';
 import { HomeEntry } from '@/components/home-entry';
-import { ModalClose } from '@/components/modal-close';
-import { ModalView } from '@/components/modal-view';
-import { TextInputThemed } from '@/components/text-input-themed';
-import { WhiteBox } from '@/components/white-box';
 import { Colors } from '@/constants/theme';
 
-import { LoginButton } from '@/components/login-button';
+import { CreateGroupModal } from '@/components/create-group-modal';
 import { useAuth } from '@/context/auth';
 import * as authApi from '@/lib/auth-api';
 
@@ -30,7 +25,6 @@ export default function Home() {
     const [groupsError, setGroupsError] = useState<string | null>(null);
 
     const [creatingGroup, setCreatingGroup] = useState(false);
-    const [newGroupName, setNewGroupName] = useState('');
 
     const loadHome = useCallback(() => {
         if (!auth.token) return () => {};
@@ -142,31 +136,7 @@ export default function Home() {
                         onPress={() => router.navigate('/profile')}
                     />
 
-                    <Modal
-                        visible={creatingGroup}
-                        transparent
-                    >
-                        <ModalView style={styles.addGroupModal}>
-                            <ModalClose closeFunction={() => setCreatingGroup(false)}/>
-                            <WhiteBox style={styles.addGroupBox}>
-                                <Pressable style={styles.uploadGroupButton}>
-                                    <FontAwesomeIcon icon={faUpload} color={Colors.interface.text} size={40} />
-                                </Pressable>
-                                <TextInputThemed
-                                    autoCapitalize="none"
-                                    onChangeText={setNewGroupName}
-                                    placeholder="Enter group name..."
-                                    value={newGroupName}
-                                    style={styles.groupNameInput}
-                                />
-                            </WhiteBox>
-
-                            <LoginButton
-                                text="Create group"
-                                type="primary"
-                            />
-                        </ModalView>
-                    </Modal>
+                    <CreateGroupModal visibleBoolean={creatingGroup} closeFunction={() => setCreatingGroup(false)}/>
                 </SafeAreaViewThemed>
             </SafeAreaProvider>
         )
@@ -228,27 +198,5 @@ const styles = StyleSheet.create({
     position: "absolute",
     bottom: -20,
     right: 0,
-  },
-  addGroupModal: {
-    gap: 18
-  },
-  addGroupBox: {
-    padding: 11,
-    flexDirection: 'row',
-    gap: 7,
-    alignItems: 'center'
-  },
-  uploadGroupButton: {
-    width: 70,
-    height: 70,
-    borderWidth: 2,
-    borderColor: Colors.box.border,
-    alignItems: 'center',
-    justifyContent: 'center'
-  },
-  groupNameInput: {
-    flex: 1,
-    alignSelf: 'auto',
-    height: 40
   }
 });
