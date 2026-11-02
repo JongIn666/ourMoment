@@ -2,7 +2,7 @@ import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
 
 import { SafeAreaViewThemed } from '@/components/safe-area-themed';
-import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Image, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { faGear } from '@fortawesome/free-solid-svg-icons/faGear';
@@ -10,8 +10,11 @@ import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
 
 import { AddButton } from '@/components/add-button';
 import { HomeEntry } from '@/components/home-entry';
+import { ModalView } from '@/components/modal-view';
 import { Colors } from '@/constants/theme';
 
+import { ModalClose } from '@/components/modal-close';
+import { WhiteBox } from '@/components/white-box';
 import { useAuth } from '@/context/auth';
 import * as authApi from '@/lib/auth-api';
 
@@ -22,6 +25,8 @@ export default function Home() {
     const [profile, setProfile] = useState<authApi.Profile | null>(auth.user?.profile ?? null);
     const [isLoadingGroups, setIsLoadingGroups] = useState(false);
     const [groupsError, setGroupsError] = useState<string | null>(null);
+
+    const [creatingGroup, setCreatingGroup] = useState(false);
 
     const loadHome = useCallback(() => {
         if (!auth.token) return () => {};
@@ -119,7 +124,7 @@ export default function Home() {
 
                         <AddButton
                             accessibilityLabel="Create a group"
-                            onPress={() => router.push('/create-group')}
+                            onPress={() => setCreatingGroup(true)}
                             style={styles.addGroupButton}
                         />
                     </View>
@@ -132,6 +137,18 @@ export default function Home() {
 
                         onPress={() => router.navigate('/profile')}
                     />
+
+                    <Modal
+                        visible={creatingGroup}
+                        transparent
+                    >
+                        <ModalView>
+                            <ModalClose closeFunction={() => setCreatingGroup(false)}/>
+                            <WhiteBox>
+                                <Text>What's 9 + 10?</Text>
+                            </WhiteBox>
+                        </ModalView>
+                    </Modal>
                 </SafeAreaViewThemed>
             </SafeAreaProvider>
         )

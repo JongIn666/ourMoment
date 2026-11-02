@@ -5,6 +5,7 @@ const colorPalette = {
     midLightLime: '#DDF690',
     midLime: '#90C400',
     darkLime: '#5E8000',
+    veryDarkLimeTranslucent: 'rgba(45, 62, 0, 0.5)',
     white: '#fff',
     lightGray: '#E6E6E6',
     midLightGray: '#D9D9D9',
@@ -35,11 +36,13 @@ export const Colors = {
         }
     },
     icon: {
+        white: colorPalette.white,
         darkLime: colorPalette.darkLime
     },
     label: colorPalette.darkLime,
     heading: colorPalette.darkLime,
     timeLine: colorPalette.midLime,
     timeCircle: colorPalette.midLightLime,
-    textLink: colorPalette.darkLime
+    textLink: colorPalette.darkLime,
+    modalBG: colorPalette.veryDarkLimeTranslucent
 } as const;
