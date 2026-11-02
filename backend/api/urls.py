@@ -12,6 +12,7 @@ from .views import (
     login,
     logout,
     me,
+    personal_posts,
     post_detail,
     profile,
     profile_picture,
@@ -37,5 +38,6 @@ urlpatterns = [
     path('groups/<int:group_id>/', group_detail, name='group-detail'),
     path('groups/<int:group_id>/members/me/', leave_group, name='group-leave'),
     path('groups/<int:group_id>/posts/', group_posts, name='group-posts'),
+    path('posts/', personal_posts, name='personal-posts'),
     path('posts/<int:post_id>/', post_detail, name='post-detail'),
 ]

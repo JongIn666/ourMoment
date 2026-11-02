@@ -13,6 +13,8 @@ class Post(models.Model):
 		'api.Group',
 		on_delete=models.CASCADE,
 		related_name='posts',
+		blank=True,
+		null=True,
 	)
 	createdAt = models.DateTimeField(default=timezone.now)
 	content = models.TextField()
@@ -20,7 +22,9 @@ class Post(models.Model):
 
 	class Meta:
 		db_table = 'post'
-		ordering = ['-createdAt']
+		ordering = ['-createdAt', '-id']
 
 	def __str__(self):
+		if self.group_id is None:
+			return f'Post by {self.author.username}'
 		return f'Post by {self.author.username} in {self.group.name}'

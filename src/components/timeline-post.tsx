@@ -131,6 +131,7 @@ export function TimelinePost({date, startOfDate, userIcon, excerpt, tags, emojiR
                 <View style={styles.postRowReact}>
                     {emojiReacts.map((emojiReact) =>
                         <ReactButton
+                            key={emojiReact.emoji.name}
                             type="emoji"
                             count={emojiReact.count}
                             emoji={emojiReact.emoji}

@@ -92,12 +92,6 @@ export default function Profile() {
                     </Pressable>
                 </WhiteBox>
 
-                <WhiteBox style={styles.bio}>
-                  <Text>
-                      {profile?.bio || 'Add a little about yourself in profile settings.'}
-                  </Text>
-                </WhiteBox>
-
                 <Text style={styles.theirMomentsHeading}>
                   theirMoments
                 </Text>
@@ -204,9 +198,6 @@ const styles = StyleSheet.create({
     position: "absolute",
     top: 11,
     right: 11
-  },
-  bio: {
-    padding: 11
   },
   theirMomentsHeading: {
     alignSelf: 'flex-start',

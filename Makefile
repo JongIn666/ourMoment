@@ -1,4 +1,4 @@
-.PHONY: help install postgres postgres-down postgres-logs postgres-shell backend django start ios android web go migrate check typecheck expo-check django-check db-check doctor-ios clean
+.PHONY: help install postgres postgres-down postgres-logs postgres-shell backend django start ios ios-device android web go migrate check typecheck expo-check django-check db-check doctor-ios clean
 
 PYTHON ?= python3.14
 VENV := backend/.venv
@@ -18,6 +18,7 @@ help:
 	@echo "  make ngrok			Start Ngrok for Django tunnel"
 	@echo "  make start         Start Expo for the development build"
 	@echo "  make ios           Build/install iOS development build"
+	@echo "  make ios-device    Build/install iOS development build on connected iPhone"
 	@echo "  make android       Build/install Android development build"
 	@echo "  make web           Start Expo web"
 	@echo "  make go            Start Expo Go fallback"
@@ -59,6 +60,9 @@ start:
 
 ios:
 	unset SDKROOT; npm run ios
+
+ios-device:
+	unset SDKROOT; npm run ios -- --device
 
 android:
 	npm run android

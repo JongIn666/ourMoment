@@ -108,6 +108,11 @@ DATABASES = {
         'HOST': os.environ.get('POSTGRES_HOST', '127.0.0.1'),
         'PORT': os.environ.get('POSTGRES_PORT', '55432'),
         'CONN_MAX_AGE': int(os.environ.get('POSTGRES_CONN_MAX_AGE', '60')),
+        'CONN_HEALTH_CHECKS': True,
+        'OPTIONS': {
+            'sslmode': os.environ.get('POSTGRES_SSLMODE', 'prefer'),
+            'channel_binding': os.environ.get('POSTGRES_CHANNEL_BINDING', 'prefer'),
+        },
     }
 }
 

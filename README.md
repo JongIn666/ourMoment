@@ -78,6 +78,18 @@ http://127.0.0.1:8010/api/health/
 
 It checks both Django and the PostgreSQL connection.
 
+YourMoment endpoints require `Authorization: Token <token>`. Personal posts have no group and are accessible only to their author.
+
+| Method | Endpoint | Action |
+| --- | --- | --- |
+| GET | `/api/posts/` | List your personal posts, newest selected date first |
+| POST | `/api/posts/` | Create a personal post |
+| GET | `/api/posts/<id>/` | Read your post |
+| PATCH | `/api/posts/<id>/` | Edit content or the selected date |
+| DELETE | `/api/posts/<id>/` | Delete your post |
+
+Create requests accept `content` and an optional ISO 8601 `createdAt` timestamp, which defaults to now. Edit requests accept either or both fields. Existing registration and profile endpoints save user information to the configured database.
+
 The Expo app defaults to a backend URL derived from the Expo dev-server host, with simulator fallbacks for iOS/web and Android emulator. Override it with `EXPO_PUBLIC_API_URL` when needed:
 
 ```bash
@@ -126,6 +138,21 @@ make postgres-shell
 ```
 
 The Django connection settings live in `backend/.env`. Use `backend/.env.example` as the template for a fresh machine.
+
+For [Neon](https://neon.com/docs/guides/django), create a project and copy the direct connection details from its Connect dialog with connection pooling disabled. Update the existing values in `backend/.env`:
+
+```dotenv
+POSTGRES_DB=neondb
+POSTGRES_USER=your_neon_user
+POSTGRES_PASSWORD=your_neon_password
+POSTGRES_HOST=your_endpoint.neon.tech
+POSTGRES_PORT=5432
+POSTGRES_CONN_MAX_AGE=60
+POSTGRES_SSLMODE=require
+POSTGRES_CHANNEL_BINDING=require
+```
+
+Use the database name, user, password, and host shown by Neon. Run `make migrate` to create the tables, then `make django` to start the backend without Docker. Existing local records require a separate data transfer.
 
 ## Project Structure
 
