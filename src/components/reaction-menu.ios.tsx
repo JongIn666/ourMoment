@@ -1,7 +1,14 @@
 import { Button, Host, Menu } from '@expo/ui/swift-ui';
 import { StyleSheet } from 'react-native';
 
-export function ReactionMenu({ emojis }: { emojis: string[] }) {
+type ReactionMenuProps = {
+  emojis: string[];
+  counts: Record<string, number>;
+  selectedEmojis: string[];
+  onSelect: (emoji: string) => void;
+};
+
+export function ReactionMenu({ emojis, counts, selectedEmojis, onSelect }: ReactionMenuProps) {
   if (emojis.length === 0) return null;
 
   return (
@@ -10,8 +17,8 @@ export function ReactionMenu({ emojis }: { emojis: string[] }) {
         {emojis.map((emoji, index) => (
           <Button
             key={`${emoji}-${index}`}
-            label={emoji}
-            onPress={() => {}}
+            label={`${emoji}${counts[emoji] ? ` ${counts[emoji]}` : ''}${selectedEmojis.includes(emoji) ? ' ✓' : ''}`}
+            onPress={() => onSelect(emoji)}
           />
         ))}
       </Menu>

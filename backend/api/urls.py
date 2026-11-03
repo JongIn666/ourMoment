@@ -18,6 +18,7 @@ from .views import (
     personal_posts,
     my_posts,
     post_detail,
+    post_reaction,
     profile,
     profile_picture,
     register,
@@ -47,5 +48,6 @@ urlpatterns = [
     path('posts/', personal_posts, name='personal-posts'),
     path('posts/mine/', my_posts, name='my-posts'),
     path('posts/<int:post_id>/', post_detail, name='post-detail'),
+    path('posts/<int:post_id>/reactions/', post_reaction, name='post-reaction'),
     path('media/<int:media_id>/', media_detail, name='media-detail'),
 ]

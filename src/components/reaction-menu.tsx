@@ -3,7 +3,14 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Colors } from '@/constants/theme';
 
-export function ReactionMenu({ emojis }: { emojis: string[] }) {
+type ReactionMenuProps = {
+  emojis: string[];
+  counts: Record<string, number>;
+  selectedEmojis: string[];
+  onSelect: (emoji: string) => void;
+};
+
+export function ReactionMenu({ emojis, counts, selectedEmojis, onSelect }: ReactionMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
 
   if (emojis.length === 0) return null;
@@ -24,10 +31,10 @@ export function ReactionMenu({ emojis }: { emojis: string[] }) {
             <Pressable
               key={`${emoji}-${index}`}
               accessibilityLabel={`React with ${emoji}`}
-              onPress={() => {}}
-              style={styles.emojiItem}
+              onPress={() => onSelect(emoji)}
+              style={[styles.emojiItem, selectedEmojis.includes(emoji) && styles.selectedEmojiItem]}
             >
-              <Text style={styles.emoji}>{emoji}</Text>
+              <Text style={styles.emoji}>{emoji}{counts[emoji] ? ` ${counts[emoji]}` : ''}</Text>
             </Pressable>
           ))}
         </View>
@@ -71,6 +78,10 @@ const styles = StyleSheet.create({
     minHeight: 36,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  selectedEmojiItem: {
+    backgroundColor: Colors.interface.box,
+    borderRadius: 18,
   },
   emoji: {
     fontSize: 22,

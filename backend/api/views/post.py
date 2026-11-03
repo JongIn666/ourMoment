@@ -1,4 +1,5 @@
-from django.db.models import Q
+from django.db import transaction
+from django.db.models import Prefetch, Q
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from rest_framework import status
@@ -7,9 +8,18 @@ from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-from ..models.group import Group
+from ..models.group import Group, default_reaction_emojis
 from ..models.post import Post
-from ..serializers.post import PostSerializer
+from ..models.reaction import Reaction
+from ..serializers.post import PostReactionReadSerializer, PostReactionSerializer, PostSerializer
+
+
+def current_user_reactions(user):
+    return Prefetch(
+        'reactions',
+        queryset=Reaction.objects.filter(user=user),
+        to_attr='current_user_reactions',
+    )
 
 
 @api_view(['GET'])
@@ -18,7 +28,7 @@ def my_posts(request):
     posts = (
         Post.objects.filter(author=request.user)
         .select_related('author', 'author__profile', 'group')
-        .prefetch_related('media')
+        .prefetch_related('media', current_user_reactions(request.user))
         .order_by('-createdAt')
     )
     return Response(PostSerializer(posts, many=True, context={'request': request}).data)
@@ -36,7 +46,7 @@ def personal_posts(request):
     posts = (
         Post.objects.filter(author=request.user, group__isnull=True)
         .select_related('author', 'author__profile')
-        .prefetch_related('media')
+        .prefetch_related('media', current_user_reactions(request.user))
     )
     return Response(PostSerializer(posts, many=True, context={'request': request}).data)
 
@@ -58,7 +68,7 @@ def group_posts(request, group_id):
     posts = (
         Post.objects.filter(group=group)
         .select_related('author', 'author__profile')
-        .prefetch_related('media')
+        .prefetch_related('media', current_user_reactions(request.user))
         .order_by('-createdAt')
     )
     return Response(PostSerializer(posts, many=True, context={'request': request}).data)
@@ -71,7 +81,9 @@ def post_detail(request, post_id):
         Post.objects.filter(
             Q(author=request.user, group__isnull=True)
             | Q(group__groupmember__user=request.user)
-        ).select_related('author', 'author__profile', 'group').prefetch_related('media'),
+        ).select_related('author', 'author__profile', 'group').prefetch_related(
+            'media', current_user_reactions(request.user),
+        ),
         pk=post_id,
     )
 
@@ -92,4 +104,67 @@ def post_detail(request, post_id):
 
     post.delete()
     return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+@api_view(['GET', 'POST', 'DELETE'])
+@permission_classes([IsAuthenticated])
+def post_reaction(request, post_id):
+    if request.method == 'GET':
+        post = get_object_or_404(
+            Post.objects.filter(
+                Q(author=request.user, group__isnull=True)
+                | Q(group__groupmember__user=request.user)
+            ),
+            pk=post_id,
+        )
+        reactions = post.reactions.select_related('user', 'user__profile').all()
+        return Response(PostReactionReadSerializer(reactions, many=True).data)
+
+    serializer = PostReactionSerializer(data=request.data)
+    serializer.is_valid(raise_exception=True)
+    emoji = serializer.validated_data['emoji']
+
+    with transaction.atomic():
+        post = get_object_or_404(
+            Post.objects.select_for_update(of=('self',)).filter(
+                Q(author=request.user, group__isnull=True)
+                | Q(group__groupmember__user=request.user)
+            ),
+            pk=post_id,
+        )
+
+        if request.method == 'POST':
+            allowed_emojis = post.group.reactionEmojis if post.group_id else default_reaction_emojis()
+            if emoji not in allowed_emojis:
+                raise ValidationError({'emoji': 'Choose an emoji enabled for this post.'})
+
+            _, created = Reaction.objects.get_or_create(user=request.user, post=post, emoji=emoji)
+            if created:
+                counts = dict(post.reactionCounts or {})
+                counts[emoji] = counts.get(emoji, 0) + 1
+                post.reactionCounts = counts
+                post.save(update_fields=['reactionCounts'])
+                response_status = status.HTTP_201_CREATED
+            else:
+                response_status = status.HTTP_200_OK
+        else:
+            deleted_count, _ = Reaction.objects.filter(
+                user=request.user,
+                post=post,
+                emoji=emoji,
+            ).delete()
+            if deleted_count:
+                counts = dict(post.reactionCounts or {})
+                remaining = counts.get(emoji, 0) - 1
+                if remaining > 0:
+                    counts[emoji] = remaining
+                else:
+                    counts.pop(emoji, None)
+                post.reactionCounts = counts
+                post.save(update_fields=['reactionCounts'])
+            response_status = status.HTTP_200_OK
+
+        response_data = PostSerializer(post, context={'request': request}).data
+
+    return Response(response_data, status=response_status)
 

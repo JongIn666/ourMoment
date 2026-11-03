@@ -8,6 +8,7 @@ from rest_framework import serializers
 from ..models.media import Media
 from ..models.post import Post
 from ..models.profile import Profile
+from ..models.reaction import Reaction
 from ..storage import delete_media_file, save_media_file
 from .media import MediaSerializer
 
@@ -54,6 +55,8 @@ class PostAuthorSerializer(serializers.ModelSerializer):
 class PostSerializer(serializers.ModelSerializer):
     author = PostAuthorSerializer(read_only=True)
     createdAt = serializers.DateTimeField(required=False)
+    reactionCounts = serializers.JSONField(read_only=True)
+    myReactions = serializers.SerializerMethodField()
     content = serializers.CharField(max_length=100, required=False, allow_blank=True)
     link = serializers.URLField(
         max_length=2048, required=False, allow_blank=True,
@@ -67,8 +70,18 @@ class PostSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Post
-        fields = ['id', 'author', 'group', 'createdAt', 'content', 'link', 'editedAt', 'media', 'uploads', 'removedMedia']
+        fields = ['id', 'author', 'group', 'createdAt', 'content', 'link', 'editedAt', 'media', 'uploads', 'removedMedia', 'reactionCounts', 'myReactions']
         read_only_fields = ['id', 'author', 'group', 'editedAt']
+
+    def get_myReactions(self, post):
+        request = self.context.get('request')
+        if request is None or not request.user.is_authenticated:
+            return []
+
+        prefetched = getattr(post, 'current_user_reactions', None)
+        if prefetched is not None:
+            return [reaction.emoji for reaction in prefetched]
+        return list(post.reactions.filter(user=request.user).values_list('emoji', flat=True))
 
     def validate_uploads(self, uploads):
         for upload in uploads:
@@ -119,3 +132,15 @@ class PostSerializer(serializers.ModelSerializer):
             for key in saved_files:
                 delete_media_file(key)
             raise
+
+
+class PostReactionSerializer(serializers.Serializer):
+    emoji = serializers.CharField(max_length=16, allow_blank=False, trim_whitespace=True)
+
+
+class PostReactionReadSerializer(serializers.ModelSerializer):
+    user = PostAuthorSerializer(read_only=True)
+
+    class Meta:
+        model = Reaction
+        fields = ['id', 'user', 'emoji', 'createdAt']

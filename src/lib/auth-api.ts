@@ -44,6 +44,8 @@ export type UserPost = {
   link: string;
   editedAt: string | null;
   media: Media[];
+  reactionCounts: Record<string, number>;
+  myReactions: string[];
 };
 
 export type Media = {
@@ -256,6 +258,13 @@ export function createPost(
 export function deletePost(token: string, postId: number) {
   return apiFetch<void>(`/api/posts/${postId}/`, {
     method: 'DELETE',
+  }, token);
+}
+
+export function setPostReaction(token: string, postId: number, emoji: string, active: boolean) {
+  return apiFetch<UserPost>(`/api/posts/${postId}/reactions/`, {
+    method: active ? 'POST' : 'DELETE',
+    body: JSON.stringify({ emoji }),
   }, token);
 }
 

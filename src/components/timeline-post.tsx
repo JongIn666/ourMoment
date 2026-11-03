@@ -24,15 +24,29 @@ export type TimelinePostProps = ViewProps & {
   media?: Media[],
   link?: string,
   reactionEmojis?: string[],
+  reactionCounts?: Record<string, number>,
+  myReactions?: string[],
+  onReact?: (emoji: string) => Promise<void>,
 };
 
-export function TimelinePost({date, startOfDate, userIcon, excerpt, tags, emojiReacts, commentNum, isOwnPost = false, onDelete, onEditPress, media = [], link = '', reactionEmojis = []} : TimelinePostProps) {
+export function TimelinePost({date, startOfDate, userIcon, excerpt, tags, emojiReacts, commentNum, isOwnPost = false, onDelete, onEditPress, media = [], link = '', reactionEmojis = [], reactionCounts = {}, myReactions = [], onReact} : TimelinePostProps) {
     const [showMoreActions, setShowMoreActions] = useState(false);
     const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
     const [deleteError, setDeleteError] = useState<string | null>(null);
+    const [reactionError, setReactionError] = useState<string | null>(null);
     const dateLabel = date.toLocaleString('en-US', {month: 'short', day: 'numeric'});
     const timeLabel = date.toLocaleString('en-US', {hour12: true, hour: 'numeric', minute: '2-digit'});
+
+    async function handleReactionSelect(emoji: string) {
+        if (!onReact) return;
+        setReactionError(null);
+        try {
+            await onReact(emoji);
+        } catch (error) {
+            setReactionError(error instanceof Error ? error.message : 'Could not save your reaction.');
+        }
+    }
     
     return (
         <View style={styles.postContain}>
@@ -142,8 +156,25 @@ export function TimelinePost({date, startOfDate, userIcon, excerpt, tags, emojiR
                             count={commentNum}
                         />
                     )}
-                    <ReactionMenu emojis={reactionEmojis} />
+                    {Object.entries(reactionCounts).filter(([, count]) => count > 0).map(([emoji, count]) => (
+                      <Pressable
+                        key={emoji}
+                        accessibilityRole="button"
+                        accessibilityLabel={`${emoji}, ${count} reactions`}
+                        onPress={() => handleReactionSelect(emoji)}
+                        style={[styles.reactionCount, myReactions.includes(emoji) && styles.selectedReaction]}
+                      >
+                        <Text style={styles.reactionCountText}>{emoji} {count}</Text>
+                      </Pressable>
+                    ))}
+                    <ReactionMenu
+                      emojis={reactionEmojis}
+                      counts={reactionCounts}
+                      selectedEmojis={myReactions}
+                      onSelect={handleReactionSelect}
+                    />
                 </View>
+                  {reactionError && <Text accessibilityRole="alert" style={styles.deleteError}>{reactionError}</Text>}
             </WhiteBox>
             <Modal
                 animationType="fade"
@@ -347,8 +378,22 @@ const styles = StyleSheet.create({
   },
   postRowReact: {
     flexDirection: 'row',
-    justifyContent: 'flex-end',
+    justifyContent: 'flex-start',
     alignItems: 'center',
     gap: 8
+  },
+  reactionCount: {
+    minHeight: 30,
+    justifyContent: 'center',
+    paddingHorizontal: 8,
+    borderRadius: 16,
+    backgroundColor: Colors.interface.box,
+  },
+  selectedReaction: {
+    borderWidth: 1,
+    borderColor: Colors.button.primary.border,
+  },
+  reactionCountText: {
+    fontSize: 14,
   },
 });

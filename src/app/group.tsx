@@ -145,8 +145,22 @@ export default function Group() {
                                     tags={[]}
                                     emojiReacts={[]}
                                     reactionEmojis={group?.reactionEmojis ?? []}
+                                    reactionCounts={post.reactionCounts ?? {}}
+                                    myReactions={post.myReactions ?? []}
                                     commentNum={0}
                                     isOwnPost={post.author.id === user?.id}
+                                    onReact={async (emoji) => {
+                                        if (!token) throw new Error('Please sign in again to react.');
+                                        const updatedPost = await authApi.setPostReaction(
+                                            token,
+                                            post.id,
+                                            emoji,
+                                            !post.myReactions.includes(emoji),
+                                        );
+                                        setPosts((currentPosts) => currentPosts.map((item) => (
+                                            item.id === updatedPost.id ? updatedPost : item
+                                        )));
+                                    }}
                                     onDelete={async () => {
                                         if (!token) throw new Error('Please sign in again to delete this post.');
                                         await authApi.deletePost(token, post.id);

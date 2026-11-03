@@ -19,6 +19,7 @@ class Post(models.Model):
 	createdAt = models.DateTimeField(default=timezone.now)
 	content = models.TextField()
 	link = models.URLField(max_length=2048, blank=True)
+	reactionCounts = models.JSONField(default=dict, blank=True)
 	editedAt = models.DateTimeField(blank=True, null=True)
 
 	class Meta:
