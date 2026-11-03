@@ -205,6 +205,10 @@ export function getGroupPosts(token: string, groupId: number) {
   return apiFetch<UserPost[]>(`/api/groups/${groupId}/posts/`, {}, token);
 }
 
+export function getMyPosts(token: string) {
+  return apiFetch<UserPost[]>('/api/posts/mine/', {}, token);
+}
+
 export function createPost(
   token: string,
   groupId: number,

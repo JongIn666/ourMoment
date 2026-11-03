@@ -12,6 +12,17 @@ from ..models.post import Post
 from ..serializers.post import PostSerializer
 
 
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def my_posts(request):
+    posts = (
+        Post.objects.filter(author=request.user)
+        .select_related('author', 'author__profile', 'group')
+        .order_by('-createdAt')
+    )
+    return Response(PostSerializer(posts, many=True).data)
+
+
 @api_view(['GET', 'POST'])
 @permission_classes([IsAuthenticated])
 def personal_posts(request):
@@ -57,14 +68,15 @@ def post_detail(request, post_id):
         Post.objects.filter(
             Q(author=request.user, group__isnull=True)
             | Q(group__groupmember__user=request.user)
-        ).select_related('author', 'author__profile'),
+        ).select_related('author', 'author__profile', 'group'),
         pk=post_id,
     )
-    if post.author_id != request.user.id:
-        raise PermissionDenied('You can only edit or delete your own posts.')
 
     if request.method == 'GET':
         return Response(PostSerializer(post).data)
+
+    if post.author_id != request.user.id:
+        raise PermissionDenied('You can only edit or delete your own posts.')
 
     if request.method == 'PATCH':
         provided_fields = set(request.data.keys())
@@ -77,3 +89,4 @@ def post_detail(request, post_id):
 
     post.delete()
     return Response(status=status.HTTP_204_NO_CONTENT)
+
