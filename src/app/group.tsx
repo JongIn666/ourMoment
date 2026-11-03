@@ -12,9 +12,11 @@ import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
 
 import { AddButton } from '@/components/add-button';
 import { BackButtonView } from '@/components/back-button-view';
+import { CreatePostModal } from '@/components/create-post-modal';
 import { HomeEntry } from '@/components/home-entry';
 import { Timeline } from '@/components/timeline';
 import { TimelinePost } from '@/components/timeline-post';
+
 import { useAuth } from '@/context/auth';
 import * as authApi from '@/lib/auth-api';
 
@@ -26,6 +28,7 @@ export default function Group() {
     const [posts, setPosts] = useState<authApi.UserPost[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [creatingPost, setCreatingPost] = useState(false);
 
     useFocusEffect(
         useCallback(() => {
@@ -172,13 +175,12 @@ export default function Group() {
                 {group && (
                     <AddButton
                         accessibilityLabel="Create post"
-                        onPress={() => router.push({
-                            pathname: '/create-post',
-                            params: { groupId: String(group.id) },
-                        })}
+                        onPress={() => setCreatingPost(true)}
                         style={styles.addPostButton}
                     />
                 )}
+
+                <CreatePostModal visibleBoolean={creatingPost} closeFunction={() => setCreatingPost(false)}/>
             </SafeAreaViewThemed>
         </SafeAreaProvider>
     )
