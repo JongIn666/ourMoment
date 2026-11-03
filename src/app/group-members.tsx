@@ -1,5 +1,4 @@
-import { useLocalSearchParams } from 'expo-router';
-import { useFocusEffect } from 'expo-router';
+import { useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { ActivityIndicator, Image, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -55,10 +54,6 @@ export default function GroupMembers() {
     <SafeAreaProvider>
       <SafeAreaViewThemed style={styles.screen}>
         <BackButtonView />
-        <View style={styles.heading}>
-          <Text style={styles.eyebrow}>GROUP MEMBERS</Text>
-          <Text style={styles.title}>{group?.name ?? 'Members'}</Text>
-        </View>
 
         {isLoading ? (
           <ActivityIndicator color={Colors.heading} />
@@ -88,10 +83,6 @@ export default function GroupMembers() {
                       {member.profile.displayName}
                     </Text>
                     <Text style={styles.username} numberOfLines={1}>@{member.username}</Text>
-                    {member.profile.bio.trim().length > 0 && (
-                      <Text style={styles.bio}>{member.profile.bio}</Text>
-                    )}
-                    {details.length > 0 && <Text style={styles.birthday}>{details.join(' · ')}</Text>}
                   </View>
                 </WhiteBox>
               );
@@ -170,18 +161,11 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   displayName: {
-    color: Colors.heading,
-    fontSize: 18,
-    fontWeight: '600',
+    fontSize: 20,
   },
   username: {
     color: Colors.interface.text,
     fontSize: 14,
-  },
-  bio: {
-    color: Colors.interface.text,
-    fontSize: 14,
-    marginTop: 4,
   },
   birthday: {
     color: Colors.interface.text,
