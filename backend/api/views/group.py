@@ -7,6 +7,8 @@ from rest_framework.response import Response
 from rest_framework import status
 
 from ..models.group import Group, GroupMember
+from ..models.post import Post
+from ..models.reaction import Reaction
 from ..serializers import GroupSerializer
 from ..serializers.group import GroupReactionEmojisSerializer, JoinGroupSerializer
 
@@ -76,8 +78,29 @@ def group_reaction_emojis(request, group_id):
     if request.method == 'PATCH':
         serializer = GroupReactionEmojisSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        user_group.reactionEmojis = serializer.validated_data['reactionEmojis']
-        user_group.save(update_fields=['reactionEmojis'])
+        reaction_emojis = serializer.validated_data['reactionEmojis']
+        removed_emojis = set(user_group.reactionEmojis) - set(reaction_emojis)
+
+        with transaction.atomic():
+            user_group.reactionEmojis = reaction_emojis
+            user_group.save(update_fields=['reactionEmojis'])
+
+            if removed_emojis:
+                Reaction.objects.filter(
+                    post__group=user_group,
+                    emoji__in=removed_emojis,
+                ).delete()
+
+                for post in Post.objects.filter(group=user_group).only('id', 'reactionCounts'):
+                    counts = dict(post.reactionCounts or {})
+                    changed = False
+                    for emoji in removed_emojis:
+                        if emoji in counts:
+                            del counts[emoji]
+                            changed = True
+                    if changed:
+                        post.reactionCounts = counts
+                        post.save(update_fields=['reactionCounts'])
 
     return Response({'reactionEmojis': user_group.reactionEmojis})
 
