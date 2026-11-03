@@ -114,56 +114,60 @@ export default function Group() {
                 ) : null}
 
                 <ScrollView contentContainerStyle={styles.mainContainer} style={styles.mainContainerSelf}>
-                    <Timeline/>
+                    {isLoading ? (
+                        <View style={styles.postsState}>
+                            <ActivityIndicator color={Colors.heading} />
+                        </View>
+                    ) : error ? (
+                        <Text style={styles.postsEmpty}>{error}</Text>
+                    ) : posts.length === 0 ? (
+                        <Text style={styles.postsEmpty}>No posts in this group yet.</Text>
+                    ) : (
+                            <>
+                            <Timeline/>
+                            <View style={styles.postsContain}>
+                                {posts.map((post, index) => {
+                                    const postDate = new Date(post.createdAt);
+                                    const previousDate = index > 0 ? new Date(posts[index - 1].createdAt) : null;
+                                    const startsNewDate = !previousDate ||
+                                        postDate.toDateString() !== previousDate.toDateString();
 
-                    <View style={styles.postsContain}>
-                        {isLoading ? (
-                            <View style={styles.postsState}>
-                                <ActivityIndicator color={Colors.heading} />
+                                    return (
+                                        <TimelinePost
+                                            key={post.id}
+                                            date={postDate}
+                                            startOfDate={startsNewDate}
+                                            userIcon={post.author.profilePicUrl
+                                                ? { uri: post.author.profilePicUrl }
+                                                : require('@/assets/images/placeholder/jet-the-hmmmawk.png')}
+                                            excerpt={`@${post.author.username}\n${post.content}`}
+                                            tags={[]}
+                                            emojiReacts={[]}
+                                            commentNum={0}
+                                            isOwnPost={post.author.id === user?.id}
+                                            onDelete={async () => {
+                                                if (!token) throw new Error('Please sign in again to delete this post.');
+                                                await authApi.deletePost(token, post.id);
+                                                setPosts((currentPosts) => currentPosts.filter(({ id }) => id !== post.id));
+                                            }}
+                                            onEditPress={() => {
+                                                router.push({
+                                                    pathname: '/edit-post',
+                                                    params: {
+                                                        postId: String(post.id),
+                                                        groupId: String(post.group),
+                                                        content: post.content,
+                                                        createdAt: post.createdAt,
+                                                    },
+                                                });
+                                            }}
+                                        />
+                                    );
+                                })}
                             </View>
-                        ) : error ? (
-                            <Text style={styles.postsEmpty}>{error}</Text>
-                        ) : posts.length === 0 ? (
-                            <Text style={styles.postsEmpty}>No posts in this group yet.</Text>
-                        ) : posts.map((post, index) => {
-                            const postDate = new Date(post.createdAt);
-                            const previousDate = index > 0 ? new Date(posts[index - 1].createdAt) : null;
-                            const startsNewDate = !previousDate ||
-                                postDate.toDateString() !== previousDate.toDateString();
-
-                            return (
-                                <TimelinePost
-                                    key={post.id}
-                                    date={postDate}
-                                    startOfDate={startsNewDate}
-                                    userIcon={post.author.profilePicUrl
-                                        ? { uri: post.author.profilePicUrl }
-                                        : require('@/assets/images/placeholder/jet-the-hmmmawk.png')}
-                                    excerpt={`@${post.author.username}\n${post.content}`}
-                                    tags={[]}
-                                    emojiReacts={[]}
-                                    commentNum={0}
-                                    isOwnPost={post.author.id === user?.id}
-                                    onDelete={async () => {
-                                        if (!token) throw new Error('Please sign in again to delete this post.');
-                                        await authApi.deletePost(token, post.id);
-                                        setPosts((currentPosts) => currentPosts.filter(({ id }) => id !== post.id));
-                                    }}
-                                    onEditPress={() => {
-                                        router.push({
-                                            pathname: '/edit-post',
-                                            params: {
-                                                postId: String(post.id),
-                                                groupId: String(post.group),
-                                                content: post.content,
-                                                createdAt: post.createdAt,
-                                            },
-                                        });
-                                    }}
-                                />
-                            );
-                        })}
-                    </View>
+                            </>
+                        )
+                    }
                 </ScrollView>
                 {group && (
                     <AddButton
@@ -214,7 +218,7 @@ const styles = StyleSheet.create({
         paddingVertical: 20,
     },
     postsEmpty: {
-        color: Colors.interface.text,
+        color: Colors.error,
         padding: 16,
         textAlign: 'center',
     },
@@ -224,7 +228,7 @@ const styles = StyleSheet.create({
     },
     groupError: {
         alignSelf: 'stretch',
-        color: Colors.interface.text,
+        color: Colors.error,
         textAlign: 'center',
   }
 });

@@ -185,7 +185,7 @@ const styles = StyleSheet.create({
         paddingVertical: 20,
     },
     stateText: {
-        color: Colors.interface.text,
+        color: Colors.error,
         fontSize: 16,
         textAlign: 'center',
     },

@@ -43,6 +43,7 @@ export const Colors = {
     heading: colorPalette.darkLime,
     timeLine: colorPalette.midLime,
     timeCircle: colorPalette.midLightLime,
+    error: colorPalette.darkGray,
     textLink: colorPalette.darkLime,
     modalBG: colorPalette.veryDarkLimeTranslucent
 } as const;
