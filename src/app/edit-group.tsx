@@ -27,6 +27,8 @@ export default function EditGroup() {
   const { token } = useAuth();
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
+  const [reactionEmojis, setReactionEmojis] = useState<string[]>([]);
+  const [newReactionEmoji, setNewReactionEmoji] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -49,6 +51,7 @@ export default function EditGroup() {
         if (!isActive) return;
         setName(group.name);
         setDescription(group.description);
+        setReactionEmojis(group.reactionEmojis);
       })
       .catch((caughtError: unknown) => {
         if (isActive) {
@@ -89,6 +92,10 @@ export default function EditGroup() {
       setErrorPopup({ title: 'Description is too long', message: 'Description must be 200 characters or fewer.' });
       return;
     }
+    if (reactionEmojis.length === 0) {
+      setErrorPopup({ title: 'Add a reaction emoji', message: 'A group must have at least one custom reaction emoji.' });
+      return;
+    }
 
     setIsSaving(true);
     try {
@@ -96,6 +103,15 @@ export default function EditGroup() {
         name: trimmedName,
         description: description.trim(),
       });
+      try {
+        await authApi.updateGroupReactionEmojis(token, id, reactionEmojis);
+      } catch (caughtError) {
+        setErrorPopup({
+          title: 'Group details saved, emojis not updated',
+          message: caughtError instanceof Error ? caughtError.message : 'Please try saving the emojis again.',
+        });
+        return;
+      }
       router.back();
     } catch (caughtError) {
       setErrorPopup({
@@ -105,6 +121,29 @@ export default function EditGroup() {
     } finally {
       setIsSaving(false);
     }
+  }
+
+  function addReactionEmoji() {
+    const emoji = newReactionEmoji.trim();
+    if (!emoji) return;
+    if (reactionEmojis.includes(emoji)) {
+      setErrorPopup({ title: 'Emoji already added', message: 'Choose a reaction emoji that is not already in this group.' });
+      return;
+    }
+    if (reactionEmojis.length > 20) {
+      setErrorPopup({ title: 'Reaction list is full', message: 'A group can have at most 20 custom reaction emojis.' });
+      return;
+    }
+    setReactionEmojis((current) => [...current, emoji]);
+    setNewReactionEmoji('');
+  }
+
+  function removeReactionEmoji(emoji: string) {
+    if (reactionEmojis.length <= 1) {
+      setErrorPopup({ title: 'Keep one reaction', message: 'A group must have at least one custom reaction emoji.' });
+      return;
+    }
+    setReactionEmojis((current) => current.filter((item) => item !== emoji));
   }
 
   async function handleDelete() {
@@ -200,6 +239,53 @@ export default function EditGroup() {
                   />
                   <Text style={styles.characterCount}>{description.length}/200</Text>
                 </View>
+
+                <View style={styles.reactionSection}>
+                  <View style={styles.reactionHeading}>
+                    <Text style={styles.label}>Custom reactions</Text>
+                    <Text style={styles.characterCount}>{reactionEmojis.length}/20</Text>
+                  </View>
+                  <View style={styles.reactionList}>
+                    {reactionEmojis.map((emoji, index) => (
+                      <View key={`${emoji}-${index}`} style={styles.reactionChip}>
+                        <Text style={styles.reactionEmoji}>{emoji}</Text>
+                        <Pressable
+                          accessibilityRole="button"
+                          accessibilityLabel={`Remove ${emoji}`}
+                          hitSlop={6}
+                          onPress={() => removeReactionEmoji(emoji)}
+                          style={styles.removeEmojiButton}
+                        >
+                          <Text style={styles.removeEmojiText}>×</Text>
+                        </Pressable>
+                      </View>
+                    ))}
+                  </View>
+                  <View style={styles.addEmojiRow}>
+                    <TextInputThemed
+                      autoCapitalize="none"
+                      autoCorrect={false}
+                      maxLength={16}
+                      onChangeText={setNewReactionEmoji}
+                      onSubmitEditing={addReactionEmoji}
+                      placeholder="Type an emoji"
+                      returnKeyType="done"
+                      style={styles.emojiInput}
+                      value={newReactionEmoji}
+                    />
+                    <Pressable
+                      accessibilityRole="button"
+                      disabled={reactionEmojis.length >= 20 || !newReactionEmoji.trim()}
+                      onPress={addReactionEmoji}
+                      style={[
+                        styles.addEmojiButton,
+                        (reactionEmojis.length >= 20 || !newReactionEmoji.trim()) && styles.disabledButton,
+                      ]}
+                    >
+                      <Text style={styles.addEmojiText}>Add</Text>
+                    </Pressable>
+                  </View>
+                </View>
               </ScrollView>
             </KeyboardAvoidingView>
 
@@ -254,7 +340,9 @@ export default function EditGroup() {
 
       <Modal
         animationType="fade"
-        onRequestClose={() => !isDeleting && setShowDeleteConfirmation(false)}
+        onRequestClose={() => {
+          if (!isDeleting) setShowDeleteConfirmation(false);
+        }}
         transparent
         visible={showDeleteConfirmation}
       >
@@ -290,7 +378,9 @@ export default function EditGroup() {
 
       <Modal
         animationType="fade"
-        onRequestClose={() => !isLeaving && setShowLeaveConfirmation(false)}
+        onRequestClose={() => {
+          if (!isLeaving) setShowLeaveConfirmation(false);
+        }}
         transparent
         visible={showLeaveConfirmation}
       >
@@ -368,6 +458,66 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-end',
     color: Colors.interface.text,
     fontSize: 12,
+  },
+  reactionSection: {
+    gap: 10,
+  },
+  reactionHeading: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  reactionList: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  reactionChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    minHeight: 40,
+    paddingLeft: 10,
+    paddingRight: 7,
+    borderWidth: 1,
+    borderColor: Colors.box.border,
+    backgroundColor: Colors.box.background,
+  },
+  reactionEmoji: {
+    fontSize: 21,
+  },
+  removeEmojiButton: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: 25,
+    height: 25,
+  },
+  removeEmojiText: {
+    color: Colors.interface.text,
+    fontSize: 21,
+  },
+  addEmojiRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  emojiInput: {
+    flex: 1,
+  },
+  addEmojiButton: {
+    minHeight: 48,
+    justifyContent: 'center',
+    paddingHorizontal: 16,
+    borderWidth: 1,
+    borderColor: Colors.button.primary.border,
+    backgroundColor: Colors.button.primary.color,
+  },
+  addEmojiText: {
+    color: Colors.button.primary.label,
+    fontWeight: '700',
+  },
+  disabledButton: {
+    opacity: 0.45,
   },
   actions: {
     alignItems: 'center',

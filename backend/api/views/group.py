@@ -8,7 +8,7 @@ from rest_framework import status
 
 from ..models.group import Group, GroupMember
 from ..serializers import GroupSerializer
-from ..serializers.group import JoinGroupSerializer
+from ..serializers.group import GroupReactionEmojisSerializer, JoinGroupSerializer
 
 @api_view(['GET', 'POST'])
 @permission_classes([IsAuthenticated])
@@ -63,6 +63,23 @@ def group_detail(request, group_id):
         return Response(status=204)
 
     return Response(GroupSerializer(user_group).data)
+
+
+@api_view(['GET', 'PATCH'])
+@permission_classes([IsAuthenticated])
+def group_reaction_emojis(request, group_id):
+    user_group = get_object_or_404(
+        Group.objects.filter(groupmember__user=request.user),
+        pk=group_id,
+    )
+
+    if request.method == 'PATCH':
+        serializer = GroupReactionEmojisSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        user_group.reactionEmojis = serializer.validated_data['reactionEmojis']
+        user_group.save(update_fields=['reactionEmojis'])
+
+    return Response({'reactionEmojis': user_group.reactionEmojis})
 
 
 @api_view(['DELETE'])

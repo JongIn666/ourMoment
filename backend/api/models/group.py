@@ -3,6 +3,10 @@ from django.db import models
 from django.utils.crypto import get_random_string
 
 
+def default_reaction_emojis():
+    return ['❤️', '😂', '👍', '😮', '😢', '🎉', '🔥', '🤔']
+
+
 def generate_invite_code():
     return get_random_string(10, allowed_chars='ABCDEFGHJKLMNPQRSTUVWXYZ23456789')
 
@@ -10,6 +14,7 @@ def generate_invite_code():
 class Group(models.Model):
     name = models.CharField(max_length=50)
     description = models.TextField(blank=True)
+    reactionEmojis = models.JSONField(default=default_reaction_emojis)
     inviteCode = models.CharField(max_length=10, unique=True, default=generate_invite_code, editable=False)
     createdAt = models.DateTimeField(auto_now_add=True)
     members = models.ManyToManyField(

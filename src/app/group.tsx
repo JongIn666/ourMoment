@@ -144,6 +144,7 @@ export default function Group() {
                                     link={post.link}
                                     tags={[]}
                                     emojiReacts={[]}
+                                    reactionEmojis={group?.reactionEmojis ?? []}
                                     commentNum={0}
                                     isOwnPost={post.author.id === user?.id}
                                     onDelete={async () => {

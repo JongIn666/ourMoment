@@ -1,10 +1,11 @@
 import { Colors } from '@/constants/theme';
 import { Link } from 'expo-router';
-import { Alert, Image, Linking, Modal, Pressable, StyleSheet, Text, View, type ImageSourcePropType, type ViewProps } from 'react-native';
 import { useState } from 'react';
+import { Alert, Image, Linking, Modal, Pressable, StyleSheet, Text, View, type ImageSourcePropType, type ViewProps } from 'react-native';
 
-import { WhiteBox } from '@/components/white-box';
 import { PostMedia } from '@/components/post-media';
+import { ReactionMenu } from '@/components/reaction-menu';
+import { WhiteBox } from '@/components/white-box';
 import type { Media } from '@/lib/auth-api';
 import { EmojiCount } from './emoji';
 import { ReactButton } from './react-button';
@@ -22,9 +23,10 @@ export type TimelinePostProps = ViewProps & {
   onEditPress?: () => void,
   media?: Media[],
   link?: string,
+  reactionEmojis?: string[],
 };
 
-export function TimelinePost({date, startOfDate, userIcon, excerpt, tags, emojiReacts, commentNum, isOwnPost = false, onDelete, onEditPress, media = [], link = ''} : TimelinePostProps) {
+export function TimelinePost({date, startOfDate, userIcon, excerpt, tags, emojiReacts, commentNum, isOwnPost = false, onDelete, onEditPress, media = [], link = '', reactionEmojis = []} : TimelinePostProps) {
     const [showMoreActions, setShowMoreActions] = useState(false);
     const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
@@ -140,13 +142,16 @@ export function TimelinePost({date, startOfDate, userIcon, excerpt, tags, emojiR
                             count={commentNum}
                         />
                     )}
+                    <ReactionMenu emojis={reactionEmojis} />
                 </View>
             </WhiteBox>
             <Modal
                 animationType="fade"
                 transparent
                 visible={showDeleteConfirmation}
-                onRequestClose={() => !isDeleting && setShowDeleteConfirmation(false)}
+                onRequestClose={() => {
+                  if (!isDeleting) setShowDeleteConfirmation(false);
+                }}
             >
                 <View style={styles.confirmationOverlay}>
                     <View accessibilityRole="alert" style={styles.confirmationDialog}>
@@ -343,9 +348,7 @@ const styles = StyleSheet.create({
   postRowReact: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
-    position: 'absolute',
-    bottom: -22,
-    right: 10,
+    alignItems: 'center',
     gap: 8
-  }
+  },
 });

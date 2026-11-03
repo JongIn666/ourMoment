@@ -39,10 +39,11 @@ class GroupMemberSerializer(serializers.ModelSerializer):
 class GroupSerializer(serializers.ModelSerializer):
     members = GroupMemberSerializer(many=True, read_only=True)
     description = serializers.CharField(max_length=200, allow_blank=True, required=False)
+    reactionEmojis = serializers.ListField(read_only=True)
 
     class Meta:
         model = Group
-        fields = ['id', 'name', 'description', 'inviteCode', 'members', 'createdAt']
+        fields = ['id', 'name', 'description', 'reactionEmojis', 'inviteCode', 'members', 'createdAt']
         read_only_fields = ['inviteCode']
 
     def validate_name(self, value):
@@ -61,3 +62,16 @@ class JoinGroupSerializer(serializers.Serializer):
 
     def validate_inviteCode(self, value):
         return value.upper()
+
+
+class GroupReactionEmojisSerializer(serializers.Serializer):
+    reactionEmojis = serializers.ListField(
+        child=serializers.CharField(max_length=16, allow_blank=False, trim_whitespace=True),
+        min_length=1,
+        max_length=20,
+    )
+
+    def validate_reactionEmojis(self, value):
+        if len(set(value)) != len(value):
+            raise serializers.ValidationError('Reaction emojis must not contain duplicates.')
+        return value

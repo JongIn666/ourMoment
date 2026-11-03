@@ -24,6 +24,7 @@ export type UserGroup = {
   id: number;
   name: string;
   description: string;
+  reactionEmojis: string[];
   inviteCode: string;
   members: GroupMember[];
   createdAt: string;
@@ -287,6 +288,13 @@ export function updateGroup(
   return apiFetch<UserGroup>(`/api/groups/${groupId}/`, {
     method: 'PATCH',
     body: JSON.stringify(updates),
+  }, token);
+}
+
+export function updateGroupReactionEmojis(token: string, groupId: number, reactionEmojis: string[]) {
+  return apiFetch<{ reactionEmojis: string[] }>(`/api/groups/${groupId}/reaction-emojis/`, {
+    method: 'PATCH',
+    body: JSON.stringify({ reactionEmojis }),
   }, token);
 }
 
