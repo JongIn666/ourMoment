@@ -113,7 +113,7 @@ export function TimelinePost({date, startOfDate, userIcon, excerpt, tags, emojiR
                         </Link>
                     )}
                 </View>
-                {media.length > 0 && <PostMedia media={media} />}
+                {media.length > 0 && <PostMedia compact media={media} />}
                 <View style={styles.postRowReact}>
                     {emojiReacts.map((emojiReact) =>
                         <ReactButton

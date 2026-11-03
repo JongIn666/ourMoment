@@ -1,4 +1,5 @@
 import { API_URL } from '@/constants/api';
+import { File } from 'expo-file-system';
 import type { ImagePickerAsset } from 'expo-image-picker';
 
 export type Profile = {
@@ -235,11 +236,7 @@ export function createPost(
   body.append('content', post.content);
   body.append('createdAt', post.createdAt);
   media.forEach((asset) => {
-    body.append('uploads', asset.file ?? {
-      uri: asset.uri,
-      name: asset.fileName ?? (asset.type === 'video' ? 'video.mp4' : 'image.jpg'),
-      type: asset.mimeType ?? (asset.type === 'video' ? 'video/mp4' : 'image/jpeg'),
-    } as unknown as Blob);
+    body.append('uploads', asset.file ?? new File(asset.uri));
   });
   return apiFetch<UserPost>(`/api/groups/${groupId}/posts/`, {
     method: 'POST',

@@ -241,10 +241,12 @@ const styles = StyleSheet.create({
     paddingBottom: 25
   },
   timelineContainerSelf: {
+    flex: 1,
     width: "100%"
   },
   postsContain: {
-    flex: 1
+    flexGrow: 1,
+    flexShrink: 1
   },
   postsState: {
     alignItems: 'center',

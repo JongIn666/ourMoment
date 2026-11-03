@@ -202,13 +202,15 @@ const styles = StyleSheet.create({
   mainContainer: {
     flexDirection: 'row',
     gap: 10,
-    paddingBottom: 25
+    paddingBottom: 80
   },
   mainContainerSelf: {
+    flex: 1,
     width: "100%"
   },
   postsContain: {
-    flex: 1
+    flexGrow: 1,
+    flexShrink: 1
     },
     postsState: {
         alignItems: 'center',
