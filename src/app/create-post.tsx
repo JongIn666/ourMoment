@@ -20,12 +20,14 @@ import { Colors } from '@/constants/theme';
 import { useAuth } from '@/context/auth';
 import { usePostMedia } from '@/hooks/use-post-media';
 import * as authApi from '@/lib/auth-api';
+import { parsePostLink } from '@/lib/post-link';
 
 export default function CreatePost() {
   const router = useRouter();
   const { groupId } = useLocalSearchParams<{ groupId?: string }>();
   const { token } = useAuth();
   const [content, setContent] = useState('');
+  const [link, setLink] = useState('');
   const { media, setMedia, isPicking, mediaError, handlePickMedia } = usePostMedia();
   const [postDate, setPostDate] = useState(new Date());
   const [isSaving, setIsSaving] = useState(false);
@@ -34,22 +36,24 @@ export default function CreatePost() {
   async function handleCreate() {
     const id = Number(groupId);
     const trimmedContent = content.trim();
+    const trimmedLink = link.trim();
     if (!token || !Number.isInteger(id) || id <= 0) {
       setError('This group could not be found.');
       return;
     }
-    if (!trimmedContent && media.length === 0) {
-      setError('Write a moment or add an image or video.');
+    if (!trimmedContent && !trimmedLink && media.length === 0) {
+      setError('Write a moment or add media or a link.');
       return;
     }
 
     setError(null);
     setIsSaving(true);
     try {
+      const postLink = parsePostLink(trimmedLink);
       await authApi.createPost(token, id, {
         content: trimmedContent,
         createdAt: postDate.toISOString(),
-      }, media);
+      }, media, postLink);
       if (router.canGoBack()) {
         router.back();
       } else {
@@ -97,14 +101,29 @@ export default function CreatePost() {
               />
             )}
 
+            <Text style={styles.label}>caption</Text>
             <TextInputThemed
               autoFocus
+              maxLength={100}
               multiline
               onChangeText={setContent}
               placeholder="Write a moment for this group"
               style={styles.contentInput}
               textAlignVertical="top"
               value={content}
+            />
+            <Text style={styles.label}>link</Text>
+            <TextInputThemed
+              accessibilityLabel="External link"
+              autoCapitalize="none"
+              autoCorrect={false}
+              editable={!isSaving && !isPicking}
+              keyboardType="url"
+              maxLength={2048}
+              onChangeText={setLink}
+              placeholder="https://example.com"
+              returnKeyType="done"
+              value={link}
             />
 
             <View style={styles.dateTimeSection}>
@@ -161,7 +180,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   contentInput: {
-    minHeight: 180,
+    height: 60,
   },
   uploadButton: {
     alignSelf: 'flex-start',

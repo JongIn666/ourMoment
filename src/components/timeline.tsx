@@ -11,8 +11,9 @@ export function Timeline() {
 const styles = StyleSheet.create({
   timeLine: {
     backgroundColor: Colors.timeLine,
-    width: 30,
+    width: 10,
     borderRadius: 50,
-    marginLeft: 50
+    marginLeft: 60,
+    marginRight: 10
   }
 });

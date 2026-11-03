@@ -1,6 +1,7 @@
 import uuid
 
 from django.contrib.auth import get_user_model
+from django.core.validators import URLValidator
 from django.db import transaction
 from rest_framework import serializers
 
@@ -53,7 +54,11 @@ class PostAuthorSerializer(serializers.ModelSerializer):
 class PostSerializer(serializers.ModelSerializer):
     author = PostAuthorSerializer(read_only=True)
     createdAt = serializers.DateTimeField(required=False)
-    content = serializers.CharField(required=False, allow_blank=True)
+    content = serializers.CharField(max_length=100, required=False, allow_blank=True)
+    link = serializers.URLField(
+        max_length=2048, required=False, allow_blank=True,
+        validators=[URLValidator(schemes=['http', 'https'])],
+    )
     media = MediaSerializer(many=True, read_only=True)
     uploads = serializers.ListField(child=serializers.FileField(), required=False, write_only=True)
     removedMedia = serializers.ListField(
@@ -62,7 +67,7 @@ class PostSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Post
-        fields = ['id', 'author', 'group', 'createdAt', 'content', 'editedAt', 'media', 'uploads', 'removedMedia']
+        fields = ['id', 'author', 'group', 'createdAt', 'content', 'link', 'editedAt', 'media', 'uploads', 'removedMedia']
         read_only_fields = ['id', 'author', 'group', 'editedAt']
 
     def validate_uploads(self, uploads):
@@ -75,14 +80,15 @@ class PostSerializer(serializers.ModelSerializer):
 
     def validate(self, attrs):
         content = attrs.get('content', self.instance.content if self.instance else '')
+        link = attrs.get('link', self.instance.link if self.instance else '')
         removed = set(attrs.get('removedMedia', []))
         if removed and (
             self.instance is None or self.instance.media.filter(pk__in=removed).count() != len(removed)
         ):
             raise serializers.ValidationError({'removedMedia': 'Choose media that belongs to this post.'})
         has_media = self.instance is not None and self.instance.media.exclude(pk__in=removed).exists()
-        if not content and not attrs.get('uploads') and not has_media:
-            raise serializers.ValidationError({'content': 'Write a moment or add an image or video.'})
+        if not content and not link and not attrs.get('uploads') and not has_media:
+            raise serializers.ValidationError({'content': 'Write a moment or add media or a link.'})
         return attrs
 
     def create(self, validated_data):

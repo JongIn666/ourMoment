@@ -40,6 +40,7 @@ export type UserPost = {
   group: number;
   createdAt: string;
   content: string;
+  link: string;
   editedAt: string | null;
   media: Media[];
 };
@@ -236,10 +237,12 @@ export function createPost(
   groupId: number,
   post: Pick<UserPost, 'content' | 'createdAt'>,
   media: ImagePickerAsset[] = [],
+  link = '',
 ) {
   const body = new FormData();
   body.append('content', post.content);
   body.append('createdAt', post.createdAt);
+  body.append('link', link);
   media.forEach((asset) => {
     body.append('uploads', asset.file ?? new File(asset.uri));
   });
@@ -262,10 +265,12 @@ export function updatePost(
   createdAt: string,
   media: ImagePickerAsset[] = [],
   removedMedia: number[] = [],
+  link?: string,
 ) {
   const body = new FormData();
   body.append('content', content);
   body.append('createdAt', createdAt);
+  if (link !== undefined) body.append('link', link);
   media.forEach((asset) => body.append('uploads', asset.file ?? new File(asset.uri)));
   removedMedia.forEach((id) => body.append('removedMedia', String(id)));
   return apiFetch<UserPost>(`/api/posts/${postId}/`, {

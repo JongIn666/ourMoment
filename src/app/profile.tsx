@@ -151,6 +151,7 @@ export default function Profile() {
                                 : require('@/assets/images/placeholder/jet-the-hmmmawk.png')}
                               excerpt={post.content}
                               media={post.media}
+                              link={post.link}
                               tags={[]}
                               emojiReacts={[]}
                               commentNum={0}

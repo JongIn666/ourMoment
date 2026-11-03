@@ -21,6 +21,7 @@ import { Colors } from '@/constants/theme';
 import { useAuth } from '@/context/auth';
 import { usePostMedia } from '@/hooks/use-post-media';
 import * as authApi from '@/lib/auth-api';
+import { parsePostLink } from '@/lib/post-link';
 
 export default function EditPost() {
   const router = useRouter();
@@ -34,6 +35,7 @@ export default function EditPost() {
   const [loadedPost, setPost] = useState<authApi.UserPost | null>(null);
   const [removedMedia, setRemovedMedia] = useState<number[]>([]);
   const [content, setContent] = useState(initialContent ?? '');
+  const [link, setLink] = useState('');
   const [postDate, setPostDate] = useState(() => {
     const parsedDate = createdAt ? new Date(createdAt) : null;
     return parsedDate && !Number.isNaN(parsedDate.getTime()) ? parsedDate : new Date();
@@ -51,6 +53,7 @@ export default function EditPost() {
         if (isActive) {
           setPost(currentPost);
           setContent(currentPost.content);
+          setLink(currentPost.link);
           setPostDate(new Date(currentPost.createdAt));
           setMedia([]);
           setRemovedMedia([]);
@@ -79,18 +82,20 @@ export default function EditPost() {
 
   async function handleSave() {
     const trimmedContent = content.trim();
+    const trimmedLink = link.trim();
     if (!token || !post || isSaving || isPicking) {
       setError('This post could not be found.');
       return;
     }
-    if (!trimmedContent && attachments.length === 0) {
-      setError('Write a moment or add an image or video.');
+    if (!trimmedContent && !trimmedLink && attachments.length === 0) {
+      setError('Write a moment or add media or a link.');
       return;
     }
     setError(null);
     setIsSaving(true);
     try {
-      await authApi.updatePost(token, post.id, trimmedContent, postDate.toISOString(), media, removedMedia);
+      const postLink = parsePostLink(trimmedLink);
+      await authApi.updatePost(token, post.id, trimmedContent, postDate.toISOString(), media, removedMedia, postLink);
       if (router.canGoBack()) {
         router.back();
       } else if (post.group) {
@@ -143,15 +148,30 @@ export default function EditPost() {
               />
             )}
 
+            <Text style={styles.label}>caption</Text>
             <TextInputThemed
               autoFocus
               editable={!!post && !isSaving}
+              maxLength={100}
               multiline
               onChangeText={setContent}
               placeholder="Write a moment for this group"
               style={styles.contentInput}
               textAlignVertical="top"
               value={content}
+            />
+            <Text style={styles.label}>link</Text>
+            <TextInputThemed
+              accessibilityLabel="External link"
+              autoCapitalize="none"
+              autoCorrect={false}
+              editable={!!post && !isSaving && !isPicking}
+              keyboardType="url"
+              maxLength={2048}
+              onChangeText={setLink}
+              placeholder="https://example.com"
+              returnKeyType="done"
+              value={link}
             />
 
             <View style={styles.dateTimeSection}>
@@ -208,7 +228,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   contentInput: {
-    minHeight: 180,
+    height: 60,
   },
   uploadButton: {
     alignSelf: 'flex-start',

@@ -1,6 +1,6 @@
 import { Colors } from '@/constants/theme';
 import { Link } from 'expo-router';
-import { Image, Modal, Pressable, StyleSheet, Text, View, type ImageSourcePropType, type ViewProps } from 'react-native';
+import { Alert, Image, Linking, Modal, Pressable, StyleSheet, Text, View, type ImageSourcePropType, type ViewProps } from 'react-native';
 import { useState } from 'react';
 
 import { WhiteBox } from '@/components/white-box';
@@ -21,15 +21,15 @@ export type TimelinePostProps = ViewProps & {
   onDelete?: () => Promise<void>,
   onEditPress?: () => void,
   media?: Media[],
+  link?: string,
 };
 
-export function TimelinePost({date, startOfDate, userIcon, excerpt, tags, emojiReacts, commentNum, isOwnPost = false, onDelete, onEditPress, media = []} : TimelinePostProps) {
+export function TimelinePost({date, startOfDate, userIcon, excerpt, tags, emojiReacts, commentNum, isOwnPost = false, onDelete, onEditPress, media = [], link = ''} : TimelinePostProps) {
     const [showMoreActions, setShowMoreActions] = useState(false);
     const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
     const [deleteError, setDeleteError] = useState<string | null>(null);
-    const monthLabel = date.toLocaleString('en-US', {month: 'short'});
-    const dayLabel = date.toLocaleString('en-US', {day: 'numeric'});
+    const dateLabel = date.toLocaleString('en-US', {month: 'short', day: 'numeric'});
     const timeLabel = date.toLocaleString('en-US', {hour12: true, hour: 'numeric', minute: '2-digit'});
     
     return (
@@ -37,10 +37,7 @@ export function TimelinePost({date, startOfDate, userIcon, excerpt, tags, emojiR
             <View style={styles.timeLabelContain}>
                 { startOfDate && (
                     <View style={styles.dateAndTimeLabel}>
-                        <View style={styles.dateLabelView}>
-                            <Text style={[styles.dateLabel, styles.monthLabel]}>{ monthLabel }</Text>
-                            <Text style={[styles.dateLabel, styles.dayLabel]}>{ dayLabel }</Text>
-                        </View>
+                        <Text style={styles.dateLabel} numberOfLines={1}>{ dateLabel }</Text>
                         <Text style={styles.timeLabel}>
                             { timeLabel }
                         </Text>
@@ -53,7 +50,9 @@ export function TimelinePost({date, startOfDate, userIcon, excerpt, tags, emojiR
                     </Text>
                 )}
 
-                <View style={styles.timeCircle}/>
+                <View style={styles.timeCircleContain}>
+                    <View style={styles.timeCircle}/>
+                </View>
             </View>
             <WhiteBox style={styles.post}>
                 <View style={styles.postRow1}>
@@ -111,6 +110,20 @@ export function TimelinePost({date, startOfDate, userIcon, excerpt, tags, emojiR
                         </Link>
                     )}
                 </View>
+                {!!link && (
+                    <Pressable
+                        accessibilityRole="link"
+                        onPress={async () => {
+                            try {
+                                await Linking.openURL(link);
+                            } catch {
+                                Alert.alert('Could not open link', 'Please try again.');
+                            }
+                        }}
+                    >
+                        <Text numberOfLines={2} style={styles.postLink}>{link}</Text>
+                    </Pressable>
+                )}
                 {media.length > 0 && <PostMedia compact media={media} />}
                 <View style={styles.postRowReact}>
                     {emojiReacts.map((emojiReact) =>
@@ -180,36 +193,38 @@ export function TimelinePost({date, startOfDate, userIcon, excerpt, tags, emojiR
 const styles = StyleSheet.create({
   timeLabelContain: {
     position: 'relative',
-    right: 88,
+    right: 90,
     top: 55,
+    width: 80,
     flexDirection: 'row',
+    justifyContent: 'flex-end',
     alignItems: 'center',
     gap: 5
   },
   dateAndTimeLabel: {
     position: 'relative',
-    bottom: 25
-  },
-  dateLabelView: {
+    bottom: 7,
     alignItems: 'center'
   },
   dateLabel: {
-    color: Colors.label
-  },
-  monthLabel: {
-    fontSize: 24
-  },
-  dayLabel: {
-    fontSize: 20
+    color: Colors.label,
+    fontSize: 16
   },
   timeLabel: {
     color: Colors.label,
     fontSize: 10
   },
+  timeCircleContain: {
+    width: 30,
+    height: 25,
+    flexShrink: 0,
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
   timeCircle: {
     backgroundColor: Colors.timeCircle,
-    width: 25,
-    height: 25,
+    width: 8,
+    height: 8,
     borderRadius: 100
   },
   postsContain: {
@@ -319,6 +334,11 @@ const styles = StyleSheet.create({
   },
   postTag: {
     color: Colors.interface.text
+  },
+  postLink: {
+    color: Colors.textLink,
+    fontSize: 14,
+    textDecorationLine: 'underline'
   },
   postRowReact: {
     flexDirection: 'row',

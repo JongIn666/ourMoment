@@ -141,6 +141,7 @@ export default function Group() {
                                         : require('@/assets/images/placeholder/jet-the-hmmmawk.png')}
                                     excerpt={`${post.author.displayName || post.author.username}\n${post.content}`}
                                     media={post.media}
+                                    link={post.link}
                                     tags={[]}
                                     emojiReacts={[]}
                                     commentNum={0}

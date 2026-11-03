@@ -1,12 +1,11 @@
 import base64
 import binascii
-import logging
 import uuid
-from urllib.parse import unquote, urlparse
 
 from django.conf import settings
 from django.core.files.base import ContentFile
 from django.core.files.storage import default_storage
+from django.db import transaction
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.decorators import parser_classes
 from rest_framework.exceptions import APIException, ValidationError
@@ -16,9 +15,7 @@ from rest_framework.response import Response
 
 from ..models.profile import Profile
 from ..serializers import ProfileSerializer
-from ..storage import get_s3_client
-
-logger = logging.getLogger(__name__)
+from ..storage import delete_media_file, delete_replaced_profile_picture, get_s3_client
 
 PROFILE_PICTURE_TYPES = {
     'image/jpeg': 'jpg',
@@ -27,41 +24,6 @@ PROFILE_PICTURE_TYPES = {
     'image/heic': 'heic',
 }
 PROFILE_PICTURE_MAX_BYTES = 5 * 1024 * 1024
-
-
-def get_s3_key_from_profile_picture_url(profile_picture_url):
-    if not settings.AWS_S3_BUCKET or not profile_picture_url:
-        return None
-
-    parsed_url = urlparse(profile_picture_url)
-    bucket_host_prefix = f'{settings.AWS_S3_BUCKET}.s3.'
-    bucket_host = f'{settings.AWS_S3_BUCKET}.s3.amazonaws.com'
-
-    if parsed_url.netloc == bucket_host or parsed_url.netloc.startswith(bucket_host_prefix):
-        return unquote(parsed_url.path.lstrip('/')) or None
-
-    path_prefix = f'/{settings.AWS_S3_BUCKET}/'
-    if parsed_url.netloc.startswith('s3.') and parsed_url.path.startswith(path_prefix):
-        return unquote(parsed_url.path.removeprefix(path_prefix)) or None
-
-    return None
-
-
-def delete_replaced_profile_picture(profile_picture_url):
-    key = get_s3_key_from_profile_picture_url(profile_picture_url)
-    if key is None:
-        return
-
-    try:
-        from botocore.exceptions import BotoCoreError, ClientError
-    except ImportError:
-        logger.warning('Could not delete replaced profile picture because botocore is not installed.')
-        return
-
-    try:
-        get_s3_client().delete_object(Bucket=settings.AWS_S3_BUCKET, Key=key)
-    except (BotoCoreError, ClientError):
-        logger.exception('Could not delete replaced profile picture from S3: %s', key)
 
 
 def save_profile_picture(image, key):
@@ -148,15 +110,20 @@ def profile_picture(request):
     key = f'profile-pictures/{request.user.pk}/{uuid.uuid4().hex}.{extension}'
     picture_url = save_profile_picture(image, key)
 
-    user_profile, _ = Profile.objects.get_or_create(user=request.user)
-    old_profile_pic_url = user_profile.profilePicUrl
-    if picture_url.startswith('http'):
-        user_profile.profilePicUrl = picture_url
-    else:
-        user_profile.profilePicUrl = request.build_absolute_uri(picture_url)
-    user_profile.save(update_fields=['profilePicUrl'])
+    try:
+        with transaction.atomic():
+            user_profile, _ = Profile.objects.select_for_update().get_or_create(user=request.user)
+            old_profile_pic_url = user_profile.profilePicUrl
+            if picture_url.startswith('http'):
+                user_profile.profilePicUrl = picture_url
+            else:
+                user_profile.profilePicUrl = request.build_absolute_uri(picture_url)
+            user_profile.save(update_fields=['profilePicUrl'])
 
-    if old_profile_pic_url != user_profile.profilePicUrl:
-        delete_replaced_profile_picture(old_profile_pic_url)
+            if old_profile_pic_url != user_profile.profilePicUrl:
+                transaction.on_commit(lambda: delete_replaced_profile_picture(old_profile_pic_url, request.user.pk))
+    except Exception:
+        delete_media_file(key)
+        raise
 
     return Response(ProfileSerializer(user_profile).data)

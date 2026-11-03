@@ -6,6 +6,7 @@ from unittest.mock import Mock, patch
 from django.contrib.auth import get_user_model
 from django.core.files.storage import default_storage
 from django.core.files.uploadedfile import SimpleUploadedFile
+from django.db import transaction
 from django.test import override_settings
 from django.utils.dateparse import parse_datetime
 from rest_framework.test import APIClient, APITestCase
@@ -289,6 +290,30 @@ class PostMediaTests(APITestCase):
                 self.client.delete(f"/api/posts/{response.data['id']}/")
             client.delete_object.assert_called_once_with(Bucket='media-test-bucket', Key=media.file)
 
+    @override_settings(AWS_S3_BUCKET='media-test-bucket')
+    def test_s3_replacement_deletes_only_removed_media_after_commit(self):
+        client = Mock()
+        client.generate_presigned_url.return_value = 'https://example.com/signed-media'
+        with patch('api.storage.get_s3_client', return_value=client), patch(
+            'api.serializers.media.get_s3_client', return_value=client,
+        ):
+            response = self.client.post(self.group_url, {
+                'content': 'Original', 'uploads': [self.image(), self.video()],
+            }, format='multipart')
+            post = Post.objects.get(pk=response.data['id'])
+            removed, kept = list(post.media.all())
+            with self.captureOnCommitCallbacks(execute=False) as callbacks:
+                response = self.client.patch(f'/api/posts/{post.id}/', {
+                    'removedMedia': [removed.id], 'uploads': [self.image()],
+                }, format='multipart')
+            self.assertEqual(response.status_code, 200)
+            client.delete_object.assert_not_called()
+            self.assertEqual(len(callbacks), 1)
+            callbacks[0]()
+            client.delete_object.assert_called_once_with(Bucket='media-test-bucket', Key=removed.file)
+            self.assertEqual(response.data['media'][0]['id'], kept.id)
+            self.assertEqual(len(response.data['media']), 2)
+
 
 class PersonalPostTests(APITestCase):
     @classmethod
@@ -308,6 +333,69 @@ class PersonalPostTests(APITestCase):
 
     def setUp(self):
         self.client.force_authenticate(user=self.owner)
+
+    def test_links_persist_for_personal_and_group_posts(self):
+        prefix = 'https://example.com/'
+        link = prefix + 'a' * (2048 - len(prefix))
+        for url in ['/api/posts/', f'/api/groups/{self.group.id}/posts/']:
+            with self.subTest(url=url):
+                response = self.client.post(url, {'content': 'a' * 100, 'link': link}, format='multipart')
+                self.assertEqual(response.status_code, 201)
+                post_id = response.data['id']
+                self.assertEqual(Post.objects.get(pk=post_id).link, link)
+                client = APIClient()
+                client.force_authenticate(user=self.owner)
+                self.assertEqual(client.get(f'/api/posts/{post_id}/').data['link'], link)
+                for list_url in [url, '/api/posts/mine/']:
+                    posts = client.get(list_url).data
+                    self.assertEqual(next(post for post in posts if post['id'] == post_id)['link'], link)
+
+    def test_invalid_links_are_rejected_on_create_and_edit(self):
+        for link in [
+            'not a link', 'https://', 'https://exa mple.com',
+            'javascript:alert(1)', 'data:text/html,test', 'ftp://example.com/file',
+            'https://example.com/' + 'a' * 2048,
+        ]:
+            with self.subTest(link=link[:40]):
+                for url in ['/api/posts/', f'/api/groups/{self.group.id}/posts/']:
+                    response = self.client.post(url, {'content': 'With link', 'link': link}, format='json')
+                    self.assertEqual(response.status_code, 400)
+                    self.assertIn('link', response.data)
+                for post in [self.post, self.group_post]:
+                    response = self.client.patch(f'/api/posts/{post.id}/', {'link': link}, format='json')
+                    self.assertEqual(response.status_code, 400)
+                    post.refresh_from_db()
+                    self.assertEqual(post.link, '')
+
+    def test_links_can_be_added_changed_preserved_and_removed(self):
+        for post in [self.post, self.group_post]:
+            url = f'/api/posts/{post.id}/'
+            with self.subTest(post=post.id):
+                response = self.client.patch(url, {'link': 'https://example.com/first'}, format='multipart')
+                self.assertEqual(response.status_code, 200)
+                response = self.client.patch(url, {'content': 'Updated'}, format='multipart')
+                self.assertEqual(response.status_code, 200)
+                self.assertEqual(response.data['link'], 'https://example.com/first')
+                response = self.client.patch(url, {'link': 'http://example.com/second'}, format='multipart')
+                self.assertEqual(response.status_code, 200)
+                self.assertEqual(response.data['link'], 'http://example.com/second')
+                response = self.client.patch(url, {'link': ''}, format='multipart')
+                self.assertEqual(response.status_code, 200)
+                post.refresh_from_db()
+                self.assertEqual(post.link, '')
+                self.assertEqual(post.content, 'Updated')
+
+    def test_link_only_posts_must_keep_the_link_or_add_content(self):
+        for url in ['/api/posts/', f'/api/groups/{self.group.id}/posts/']:
+            with self.subTest(url=url):
+                response = self.client.post(url, {'link': 'https://example.com/'}, format='multipart')
+                self.assertEqual(response.status_code, 201)
+                detail_url = f"/api/posts/{response.data['id']}/"
+                response = self.client.patch(detail_url, {'link': ''}, format='multipart')
+                self.assertEqual(response.status_code, 400)
+                self.assertEqual(self.client.get(detail_url).data['link'], 'https://example.com/')
+                response = self.client.patch(detail_url, {'link': '', 'content': 'A moment'}, format='multipart')
+                self.assertEqual(response.status_code, 200)
 
     def test_personal_posts_require_authentication(self):
         self.client.force_authenticate(user=None)
@@ -445,6 +533,7 @@ class PersonalPostTests(APITestCase):
         self.client.force_authenticate(user=self.other)
         detail_url = f'/api/posts/{self.group_post.id}/'
         self.assertEqual(self.client.patch(detail_url, {'content': 'Changed'}, format='json').status_code, 403)
+        self.assertEqual(self.client.patch(detail_url, {'link': 'https://example.com/'}, format='json').status_code, 403)
         self.assertEqual(self.client.delete(detail_url).status_code, 403)
 
 
@@ -514,6 +603,133 @@ class GroupInviteTests(APITestCase):
         }, format='json')
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data['inviteCode'], code)
+
+
+@override_settings(AWS_S3_BUCKET='media-test-bucket', AWS_REGION='us-east-1')
+class ProfilePictureStorageTests(APITestCase):
+    @classmethod
+    def setUpTestData(cls):
+        cls.owner = User.objects.create_user(username='picture-owner')
+        cls.other = User.objects.create_user(username='picture-other')
+
+    def setUp(self):
+        self.client.force_authenticate(user=self.owner)
+        self.key = f'profile-pictures/{self.owner.id}/old.png'
+        self.url = f'https://media-test-bucket.s3.us-east-1.amazonaws.com/{self.key}'
+        self.profile = Profile.objects.create(user=self.owner, profilePicUrl=self.url)
+        self.s3 = Mock()
+        storage_patch = patch('api.storage.get_s3_client', return_value=self.s3)
+        view_patch = patch('api.views.profile.get_s3_client', return_value=self.s3)
+        storage_patch.start()
+        view_patch.start()
+        self.addCleanup(storage_patch.stop)
+        self.addCleanup(view_patch.stop)
+
+    def image(self):
+        return SimpleUploadedFile('picture.png', b'picture', content_type='image/png')
+
+    def test_replacing_picture_deletes_old_s3_file_after_commit(self):
+        with self.captureOnCommitCallbacks(execute=False) as callbacks:
+            response = self.client.post('/api/profile/picture/', {'image': self.image()}, format='multipart')
+        self.assertEqual(response.status_code, 200)
+        self.profile.refresh_from_db()
+        self.assertNotEqual(self.profile.profilePicUrl, self.url)
+        self.s3.delete_object.assert_not_called()
+        self.assertEqual(len(callbacks), 1)
+        callbacks[0]()
+        self.s3.delete_object.assert_called_once_with(Bucket='media-test-bucket', Key=self.key)
+
+    def test_clearing_or_changing_picture_url_deletes_the_previous_owned_file(self):
+        for previous in [
+            self.url,
+            f'https://media-test-bucket.s3.amazonaws.com/{self.key}',
+            f'https://s3.us-east-1.amazonaws.com/media-test-bucket/{self.key}',
+            f'https://s3.amazonaws.com/media-test-bucket/{self.key}',
+        ]:
+            for replacement in ['', 'https://example.com/new-picture.png']:
+                with self.subTest(previous=previous, replacement=replacement):
+                    Profile.objects.filter(pk=self.profile.pk).update(profilePicUrl=previous)
+                    self.s3.reset_mock()
+                    with self.captureOnCommitCallbacks(execute=False) as callbacks:
+                        response = self.client.patch('/api/profile/', {'profilePicUrl': replacement}, format='json')
+                    self.assertEqual(response.status_code, 200)
+                    self.s3.delete_object.assert_not_called()
+                    for callback in callbacks:
+                        callback()
+                    self.s3.delete_object.assert_called_once_with(Bucket='media-test-bucket', Key=self.key)
+                    self.profile.refresh_from_db()
+                    self.assertEqual(self.profile.profilePicUrl, replacement)
+
+    def test_unchanged_picture_and_unrelated_profile_edits_keep_the_file(self):
+        for payload in [{'profilePicUrl': self.url}, {'displayName': 'Updated Name'}]:
+            with self.captureOnCommitCallbacks(execute=True):
+                response = self.client.patch('/api/profile/', payload, format='json')
+            self.assertEqual(response.status_code, 200)
+        self.s3.delete_object.assert_not_called()
+
+    def test_cleanup_never_deletes_another_users_file_or_an_untrusted_url(self):
+        for previous in [
+            f'https://media-test-bucket.s3.us-east-1.amazonaws.com/profile-pictures/{self.other.id}/old.png',
+            f'https://media-test-bucket.s3.us-east-1.amazonaws.com/post-media/{self.owner.id}/old.png',
+            f'https://media-test-bucket.s3.example.com/{self.key}',
+            f'https://s3.example.com/media-test-bucket/{self.key}',
+            f'https://other-bucket.s3.us-east-1.amazonaws.com/{self.key}',
+            f'https://media-test-bucket.s3.us-east-1.amazonaws.com/profile-pictures/{self.owner.id}/../other.png',
+            'https://example.com/external-picture.png',
+        ]:
+            with self.subTest(previous=previous):
+                Profile.objects.filter(pk=self.profile.pk).update(profilePicUrl=previous)
+                with self.captureOnCommitCallbacks(execute=True):
+                    response = self.client.patch('/api/profile/', {'profilePicUrl': ''}, format='json')
+                self.assertEqual(response.status_code, 200)
+        self.s3.delete_object.assert_not_called()
+
+    def test_failed_database_save_deletes_new_upload_and_preserves_old_picture(self):
+        from rest_framework.exceptions import APIException
+
+        with patch('api.models.profile.Profile.save', side_effect=APIException('Could not save picture.')):
+            with self.captureOnCommitCallbacks(execute=True):
+                response = self.client.post('/api/profile/picture/', {'image': self.image()}, format='multipart')
+        self.assertEqual(response.status_code, 500)
+        self.profile.refresh_from_db()
+        self.assertEqual(self.profile.profilePicUrl, self.url)
+        new_key = self.s3.upload_fileobj.call_args.args[2]
+        self.assertNotEqual(new_key, self.key)
+        self.s3.delete_object.assert_called_once_with(Bucket='media-test-bucket', Key=new_key)
+
+    def test_rolled_back_profile_change_keeps_the_old_s3_file(self):
+        with self.captureOnCommitCallbacks(execute=True):
+            with self.assertRaises(RuntimeError):
+                with transaction.atomic():
+                    response = self.client.patch('/api/profile/', {'profilePicUrl': ''}, format='json')
+                    self.assertEqual(response.status_code, 200)
+                    raise RuntimeError('Roll back the profile change.')
+        self.profile.refresh_from_db()
+        self.assertEqual(self.profile.profilePicUrl, self.url)
+        self.s3.delete_object.assert_not_called()
+
+    def test_failed_upload_keeps_old_picture(self):
+        from botocore.exceptions import ClientError
+
+        self.s3.upload_fileobj.side_effect = ClientError({'Error': {'Code': 'AccessDenied'}}, 'PutObject')
+        response = self.client.post('/api/profile/picture/', {'image': self.image()}, format='multipart')
+        self.assertEqual(response.status_code, 500)
+        self.profile.refresh_from_db()
+        self.assertEqual(self.profile.profilePicUrl, self.url)
+        self.s3.delete_object.assert_not_called()
+
+    def test_stale_profile_edit_preserves_the_current_picture(self):
+        from .serializers.profile import ProfileSerializer
+
+        new_url = self.url.replace('old.png', 'current.png')
+        Profile.objects.filter(pk=self.profile.pk).update(profilePicUrl=new_url)
+        serializer = ProfileSerializer(self.profile, data={'bio': 'Updated bio'}, partial=True)
+        self.assertTrue(serializer.is_valid(), serializer.errors)
+        with self.captureOnCommitCallbacks(execute=True):
+            serializer.save()
+        self.profile.refresh_from_db()
+        self.assertEqual(self.profile.profilePicUrl, new_url)
+        self.s3.delete_object.assert_not_called()
 
 
 class UserPersistenceTests(APITestCase):

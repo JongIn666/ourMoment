@@ -1,7 +1,9 @@
 from django.contrib.auth import get_user_model
+from django.db import transaction
 from rest_framework import serializers
 
 from ..models.profile import Profile
+from ..storage import delete_replaced_profile_picture
 
 User = get_user_model()
 
@@ -47,10 +49,15 @@ class ProfileSerializer(serializers.ModelSerializer):
     def update(self, instance, validated_data):
         user_data = validated_data.pop('user', {})
         username = user_data.get('username')
-        profile = super().update(instance, validated_data)
-        if username is not None:
-            profile.user.username = username
-            profile.user.save(update_fields=['username'])
+        with transaction.atomic():
+            instance = Profile.objects.select_for_update().get(pk=instance.pk)
+            old_picture_url = instance.profilePicUrl
+            profile = super().update(instance, validated_data)
+            if username is not None:
+                profile.user.username = username
+                profile.user.save(update_fields=['username'])
+            if old_picture_url != profile.profilePicUrl:
+                transaction.on_commit(lambda: delete_replaced_profile_picture(old_picture_url, profile.user_id))
         return profile
 
 
