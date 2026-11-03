@@ -1,7 +1,7 @@
 import { SafeAreaViewThemed } from '@/components/safe-area-themed';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { faCakeCandles } from '@fortawesome/free-solid-svg-icons/faCakeCandles';
@@ -20,17 +20,39 @@ export default function Profile() {
   const router = useRouter();
   const { token, user } = useAuth();
   const [profile, setProfile] = useState<authApi.Profile | null>(null);
+  const [posts, setPosts] = useState<authApi.UserPost[]>([]);
+  const [isLoadingPosts, setIsLoadingPosts] = useState(false);
+  const [postsError, setPostsError] = useState<string | null>(null);
 
   useFocusEffect(
     useCallback(() => {
       let isActive = true;
       if (token) {
+        setIsLoadingPosts(true);
+        setPostsError(null);
         authApi.getProfile(token)
           .then((currentProfile) => {
             if (isActive) setProfile(currentProfile);
           })
           .catch(() => {
             if (isActive && user) setProfile(user.profile);
+          });
+
+        authApi.getMyPosts(token)
+          .then((currentPosts) => {
+            if (isActive) {
+              setPosts([...currentPosts].sort(
+                (first, second) => Date.parse(first.createdAt) - Date.parse(second.createdAt),
+              ));
+            }
+          })
+          .catch((caughtError: unknown) => {
+            if (isActive) {
+              setPostsError(caughtError instanceof Error ? caughtError.message : 'Could not load your moments.');
+            }
+          })
+          .finally(() => {
+            if (isActive) setIsLoadingPosts(false);
           });
       }
       return () => {
@@ -44,6 +66,12 @@ export default function Profile() {
     : null;
   const age = profile?.birthday ? calculateAge(profile.birthday) : null;
   const ageEmoji = age === null ? null : getAgeEmoji(age);
+
+  async function deletePost(postId: number) {
+    if (!token) throw new Error('You must be signed in to delete a post.');
+    await authApi.deletePost(token, postId);
+    setPosts((currentPosts) => currentPosts.filter((post) => post.id !== postId));
+  }
 
     return (
         <SafeAreaProvider>
@@ -100,34 +128,36 @@ export default function Profile() {
                     <Timeline/>
 
                     <View style={styles.postsContain}>
-                        <TimelinePost
-                            date={new Date(2026,6,15,10,35)}
-                            startOfDate
-                            userIcon={require('@/assets/images/placeholder/jet-the-hmmmawk.png')}
-                            excerpt={"Blaze and I agree! Blaze is my friend, and Amy's my friend...."}
-                            tags={['tag1', 'tag2']}
-                            emojiReacts={[{emoji: {name: 'heart', type: 'unicode', unicode: '❤️'}, count: 1}]}
-                            commentNum={2}
-                        />
+                        {isLoadingPosts ? (
+                          <View style={styles.postsState}>
+                            <ActivityIndicator color={Colors.heading} />
+                          </View>
+                        ) : postsError ? (
+                          <Text style={styles.postsEmpty}>{postsError}</Text>
+                        ) : posts.length === 0 ? (
+                          <Text style={styles.postsEmpty}>No moments yet.</Text>
+                        ) : posts.map((post, index) => {
+                          const postDate = new Date(post.createdAt);
+                          const previousDate = index > 0 ? new Date(posts[index - 1].createdAt) : null;
+                          const startsNewDate = !previousDate || postDate.toDateString() !== previousDate.toDateString();
 
-                        <TimelinePost
-                            date={new Date(2026,6,15,19,35)}
-                            userIcon={require('@/assets/images/placeholder/jet-the-hmmmawk.png')}
-                            excerpt={"Blaze and I agree! Blaze is my friend, and Amy's my friend...."}
-                            tags={['tag1', 'tag2']}
-                            emojiReacts={[{emoji: {name: 'heart', type: 'unicode', unicode: '❤️'}, count: 1}]}
-                            commentNum={2}
-                        />
-
-                        <TimelinePost
-                            date={new Date(2026,6,30,7,35)}
-                            startOfDate
-                            userIcon={require('@/assets/images/placeholder/jet-the-hmmmawk.png')}
-                            excerpt={"Blaze and I agree! Blaze is my friend, and Amy's my friend...."}
-                            tags={['tag1', 'tag2']}
-                            emojiReacts={[{emoji: {name: 'heart', type: 'unicode', unicode: '❤️'}, count: 1}]}
-                            commentNum={2}
-                        />
+                          return (
+                            <TimelinePost
+                              key={post.id}
+                              date={postDate}
+                              startOfDate={startsNewDate}
+                              userIcon={post.author.profilePicUrl
+                                ? { uri: post.author.profilePicUrl }
+                                : require('@/assets/images/placeholder/jet-the-hmmmawk.png')}
+                              excerpt={post.content}
+                              tags={[]}
+                              emojiReacts={[]}
+                              commentNum={0}
+                              isOwnPost
+                              onDelete={() => deletePost(post.id)}
+                            />
+                          );
+                        })}
                     </View>
                 </ScrollView>
             </SafeAreaViewThemed>
@@ -214,5 +244,14 @@ const styles = StyleSheet.create({
   },
   postsContain: {
     flexShrink: 1
+  },
+  postsState: {
+    alignItems: 'center',
+    paddingVertical: 20,
+  },
+  postsEmpty: {
+    color: Colors.interface.text,
+    padding: 16,
+    textAlign: 'center',
   }
 })
