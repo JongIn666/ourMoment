@@ -1,14 +1,19 @@
 import { Colors } from '@/constants/theme';
-import { Keyboard, Platform, StyleSheet, TouchableWithoutFeedback, ViewProps } from 'react-native';
+import { Keyboard, Platform, StyleSheet, ViewProps } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 export type ThemedProps = ViewProps;
 
 export function SafeAreaViewThemed({ style, ...rest }: ThemedProps) {
     return (
-        <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
-            <SafeAreaView style={[styles.container, style]} {...rest}/>
-        </TouchableWithoutFeedback>
+        <SafeAreaView
+            style={[styles.container, style]}
+            onStartShouldSetResponder={() => {
+                Keyboard.dismiss();
+                return false;
+            }}
+            {...rest}
+        />
     )
 }
 

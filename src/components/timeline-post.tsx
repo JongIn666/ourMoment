@@ -57,52 +57,50 @@ export function TimelinePost({date, startOfDate, userIcon, excerpt, tags, emojiR
             </View>
             <WhiteBox style={styles.post}>
                 <View style={styles.postRow1}>
-                    <Text style={styles.postText}>
-                        {excerpt}
-                    </Text>
                     <Image
                         source={userIcon}
                         style={styles.postUserIcon}
                     />
-                </View>
-                {isOwnPost && (onDelete || onEditPress) && (
-                    <View style={styles.moreActions}>
+                    <Text style={styles.postText}>
+                        {excerpt}
+                    </Text>
+                    {isOwnPost && (onDelete || onEditPress) && (
                         <Pressable
                             accessibilityRole="button"
-                            accessibilityLabel="More post actions"
+                            accessibilityLabel={showMoreActions ? 'Less post actions' : 'More post actions'}
                             onPress={() => setShowMoreActions((visible) => !visible)}
                             style={styles.moreButton}
                         >
-                            <Text style={styles.moreButtonText}>More</Text>
+                            <Text style={styles.moreButtonText}>{showMoreActions ? 'Less' : 'More'}</Text>
                         </Pressable>
-                        {showMoreActions && (
-                            <>
-                                {onEditPress && (
-                                    <Pressable
-                                        accessibilityRole="button"
-                                        onPress={() => {
-                                            setShowMoreActions(false);
-                                            onEditPress();
-                                        }}
-                                        style={styles.moreButton}
-                                    >
-                                        <Text style={styles.moreButtonText}>Edit</Text>
-                                    </Pressable>
-                                )}
-                                {onDelete && (
-                                    <Pressable
-                                        accessibilityRole="button"
-                                        onPress={() => {
-                                            setShowMoreActions(false);
-                                            setDeleteError(null);
-                                            setShowDeleteConfirmation(true);
-                                        }}
-                                        style={styles.deleteButton}
-                                    >
-                                        <Text style={styles.deleteButtonText}>Delete</Text>
-                                    </Pressable>
-                                )}
-                            </>
+                    )}
+                </View>
+                {isOwnPost && showMoreActions && (onDelete || onEditPress) && (
+                    <View style={styles.moreActions}>
+                        {onEditPress && (
+                            <Pressable
+                                accessibilityRole="button"
+                                onPress={() => {
+                                    setShowMoreActions(false);
+                                    onEditPress();
+                                }}
+                                style={styles.moreButton}
+                            >
+                                <Text style={styles.moreButtonText}>Edit</Text>
+                            </Pressable>
+                        )}
+                        {onDelete && (
+                            <Pressable
+                                accessibilityRole="button"
+                                onPress={() => {
+                                    setShowMoreActions(false);
+                                    setDeleteError(null);
+                                    setShowDeleteConfirmation(true);
+                                }}
+                                style={styles.deleteButton}
+                            >
+                                <Text style={styles.deleteButtonText}>Delete</Text>
+                            </Pressable>
                         )}
                     </View>
                 )}
@@ -226,6 +224,7 @@ const styles = StyleSheet.create({
   },
   postRow1: {
     flexDirection: 'row',
+    alignItems: 'flex-start',
     gap: 10
   },
   moreActions: {
@@ -306,11 +305,11 @@ const styles = StyleSheet.create({
   },
   postText: {
     fontSize: 14,
-    flexShrink: 1
+    flex: 1
   },
   postUserIcon: {
-    width: 48,
-    height: 48,
+    width: 32,
+    height: 32,
     borderWidth: 2,
     borderColor: Colors.box.border
   },

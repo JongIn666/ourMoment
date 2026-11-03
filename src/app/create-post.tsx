@@ -1,6 +1,4 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { File } from 'expo-file-system';
-import * as ImagePicker from 'expo-image-picker';
 import { useState } from 'react';
 import {
   KeyboardAvoidingView,
@@ -20,6 +18,7 @@ import { SafeAreaViewThemed } from '@/components/safe-area-themed';
 import { TextInputThemed } from '@/components/text-input-themed';
 import { Colors } from '@/constants/theme';
 import { useAuth } from '@/context/auth';
+import { usePostMedia } from '@/hooks/use-post-media';
 import * as authApi from '@/lib/auth-api';
 
 export default function CreatePost() {
@@ -27,46 +26,10 @@ export default function CreatePost() {
   const { groupId } = useLocalSearchParams<{ groupId?: string }>();
   const { token } = useAuth();
   const [content, setContent] = useState('');
-  const [media, setMedia] = useState<ImagePicker.ImagePickerAsset[]>([]);
-  const [isPicking, setIsPicking] = useState(false);
-  const [mediaError, setMediaError] = useState<string | null>(null);
+  const { media, setMedia, isPicking, mediaError, handlePickMedia } = usePostMedia();
   const [postDate, setPostDate] = useState(new Date());
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  async function handlePickMedia() {
-    setIsPicking(true);
-    setMediaError(null);
-    try {
-      const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (!permission.granted) {
-        setMediaError('Allow photo and video access to upload media.');
-        return;
-      }
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ['images', 'videos'],
-        allowsMultipleSelection: true,
-        quality: 1,
-      });
-      if (result.canceled) return;
-
-      const selected = result.assets.filter((asset) => {
-        const size = asset.fileSize ?? asset.file?.size ?? new File(asset.uri).size;
-        if (size > 8 * 1024 * 1024) {
-          setMediaError('Each image or video must be 8 MB or smaller.');
-          return false;
-        }
-        return true;
-      });
-      setMedia((current) => [...current, ...selected.filter((asset) => (
-        !current.some((item) => item.uri === asset.uri)
-      ))]);
-    } catch (caughtError) {
-      setMediaError(caughtError instanceof Error ? caughtError.message : 'Could not select media.');
-    } finally {
-      setIsPicking(false);
-    }
-  }
 
   async function handleCreate() {
     const id = Number(groupId);

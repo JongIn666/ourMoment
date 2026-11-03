@@ -34,6 +34,7 @@ export type UserPost = {
   author: {
     id: number;
     username: string;
+    displayName: string;
     profilePicUrl: string;
   };
   group: number;
@@ -226,6 +227,10 @@ export function getMyPosts(token: string) {
   return apiFetch<UserPost[]>('/api/posts/mine/', {}, token);
 }
 
+export function getPost(token: string, postId: number) {
+  return apiFetch<UserPost>(`/api/posts/${postId}/`, {}, token);
+}
+
 export function createPost(
   token: string,
   groupId: number,
@@ -250,10 +255,22 @@ export function deletePost(token: string, postId: number) {
   }, token);
 }
 
-export function updatePost(token: string, postId: number, content: string, createdAt: string) {
+export function updatePost(
+  token: string,
+  postId: number,
+  content: string,
+  createdAt: string,
+  media: ImagePickerAsset[] = [],
+  removedMedia: number[] = [],
+) {
+  const body = new FormData();
+  body.append('content', content);
+  body.append('createdAt', createdAt);
+  media.forEach((asset) => body.append('uploads', asset.file ?? new File(asset.uri)));
+  removedMedia.forEach((id) => body.append('removedMedia', String(id)));
   return apiFetch<UserPost>(`/api/posts/${postId}/`, {
     method: 'PATCH',
-    body: JSON.stringify({ content, createdAt }),
+    body,
   }, token);
 }
 

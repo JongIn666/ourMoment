@@ -83,8 +83,8 @@ def post_detail(request, post_id):
 
     if request.method == 'PATCH':
         provided_fields = set(request.data.keys())
-        if not provided_fields or not provided_fields <= {'content', 'createdAt'}:
-            raise ValidationError({'content': 'Provide the post content or timestamp to edit.'})
+        if not provided_fields or not provided_fields <= {'content', 'createdAt', 'uploads', 'removedMedia'}:
+            raise ValidationError({'content': 'Provide post content, timestamp, or media to edit.'})
         serializer = PostSerializer(post, data=request.data, partial=True, context={'request': request})
         serializer.is_valid(raise_exception=True)
         updated_post = serializer.save(editedAt=timezone.now())

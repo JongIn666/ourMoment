@@ -1,6 +1,7 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
+  ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -13,21 +14,25 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { BackButtonView } from '@/components/back-button-view';
 import { DateTimeFields } from '@/components/date-time-fields';
 import { LoginButton } from '@/components/login-button';
+import { PostMedia } from '@/components/post-media';
 import { SafeAreaViewThemed } from '@/components/safe-area-themed';
 import { TextInputThemed } from '@/components/text-input-themed';
 import { Colors } from '@/constants/theme';
 import { useAuth } from '@/context/auth';
+import { usePostMedia } from '@/hooks/use-post-media';
 import * as authApi from '@/lib/auth-api';
 
 export default function EditPost() {
   const router = useRouter();
-  const { postId, groupId, content: initialContent, createdAt } = useLocalSearchParams<{
+  const { postId, content: initialContent, createdAt } = useLocalSearchParams<{
     postId?: string;
-    groupId?: string;
     content?: string;
     createdAt?: string;
   }>();
   const { token } = useAuth();
+  const { media, setMedia, isPicking, mediaError, handlePickMedia } = usePostMedia();
+  const [loadedPost, setPost] = useState<authApi.UserPost | null>(null);
+  const [removedMedia, setRemovedMedia] = useState<number[]>([]);
   const [content, setContent] = useState(initialContent ?? '');
   const [postDate, setPostDate] = useState(() => {
     const parsedDate = createdAt ? new Date(createdAt) : null;
@@ -35,20 +40,64 @@ export default function EditPost() {
   });
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const post = loadedPost?.id === Number(postId) ? loadedPost : null;
+
+  useEffect(() => {
+    let isActive = true;
+    if (!token) return;
+
+    authApi.getPost(token, Number(postId))
+      .then((currentPost) => {
+        if (isActive) {
+          setPost(currentPost);
+          setContent(currentPost.content);
+          setPostDate(new Date(currentPost.createdAt));
+          setMedia([]);
+          setRemovedMedia([]);
+          setError(null);
+        }
+      })
+      .catch((caughtError: unknown) => {
+        if (isActive) {
+          setError(caughtError instanceof Error ? caughtError.message : 'Could not load the post.');
+        }
+      });
+
+    return () => {
+      isActive = false;
+    };
+  }, [postId, token, setMedia]);
+
+  const attachments = [
+    ...(post?.media ?? []).filter((item) => !removedMedia.includes(item.id)),
+    ...media.map((asset) => ({
+      id: asset.uri,
+      type: asset.type === 'video' ? 'video' as const : 'image' as const,
+      url: asset.uri,
+    })),
+  ];
 
   async function handleSave() {
-    const id = Number(postId);
-    const group = Number(groupId);
     const trimmedContent = content.trim();
-    if (!token || !Number.isInteger(id) || id <= 0 || !Number.isInteger(group) || group <= 0 || !createdAt) {
+    if (!token || !post || isSaving || isPicking) {
       setError('This post could not be found.');
+      return;
+    }
+    if (!trimmedContent && attachments.length === 0) {
+      setError('Write a moment or add an image or video.');
       return;
     }
     setError(null);
     setIsSaving(true);
     try {
-      await authApi.updatePost(token, id, trimmedContent, postDate.toISOString());
-      router.back();
+      await authApi.updatePost(token, post.id, trimmedContent, postDate.toISOString(), media, removedMedia);
+      if (router.canGoBack()) {
+        router.back();
+      } else if (post.group) {
+        router.replace({ pathname: '/group', params: { groupId: String(post.group) } });
+      } else {
+        router.replace('/profile');
+      }
     } catch (caughtError) {
       setError(caughtError instanceof Error ? caughtError.message : 'Could not update the post.');
     } finally {
@@ -70,8 +119,33 @@ export default function EditPost() {
           style={styles.formArea}
         >
           <ScrollView contentContainerStyle={styles.form} keyboardShouldPersistTaps="handled">
+            <LoginButton
+              text="Upload images / video"
+              type="secondary"
+              disabled={!post || isSaving || isPicking}
+              onPress={handlePickMedia}
+              style={styles.uploadButton}
+              labelStyle={styles.uploadLabel}
+            />
+            {!post && !error && <ActivityIndicator color={Colors.heading} />}
+            {mediaError && <Text accessibilityRole="alert" style={styles.error}>{mediaError}</Text>}
+            {attachments.length > 0 && (
+              <PostMedia
+                compact
+                media={attachments}
+                onRemove={isSaving || isPicking ? undefined : (id) => {
+                  if (typeof id === 'number') {
+                    setRemovedMedia((current) => [...current, id]);
+                  } else {
+                    setMedia((current) => current.filter((asset) => asset.uri !== id));
+                  }
+                }}
+              />
+            )}
+
             <TextInputThemed
               autoFocus
+              editable={!!post && !isSaving}
               multiline
               onChangeText={setContent}
               placeholder="Write a moment for this group"
@@ -93,7 +167,7 @@ export default function EditPost() {
           <LoginButton
             text={isSaving ? 'Saving…' : 'Save changes'}
             type="primary"
-            disabled={isSaving}
+            disabled={!post || isSaving || isPicking}
             onPress={handleSave}
           />
         </View>
@@ -135,6 +209,15 @@ const styles = StyleSheet.create({
   },
   contentInput: {
     minHeight: 180,
+  },
+  uploadButton: {
+    alignSelf: 'flex-start',
+    width: 'auto',
+    height: 44,
+    paddingHorizontal: 12,
+  },
+  uploadLabel: {
+    fontSize: 16,
   },
   dateTimeSection: {
     gap: 10,

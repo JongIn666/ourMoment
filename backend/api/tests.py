@@ -166,6 +166,107 @@ class PostMediaTests(APITestCase):
         self.assertFalse(Media.objects.exists())
         self.assertFalse(default_storage.exists(saved_files[0]))
 
+    def test_edit_adds_and_removes_media_and_preserves_remaining_attachments(self):
+        response = self.client.post(self.group_url, {
+            'content': 'Original', 'uploads': [self.image(), self.video()],
+        }, format='multipart')
+        post = Post.objects.get(pk=response.data['id'])
+        kept, removed = list(post.media.all())
+        with self.captureOnCommitCallbacks(execute=True):
+            response = self.client.patch(f'/api/posts/{post.id}/', {
+                'content': 'Edited', 'createdAt': '2026-11-01T12:00:00Z',
+                'uploads': [self.image(), self.video()], 'removedMedia': [removed.id],
+            }, format='multipart')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual([item['type'] for item in response.data['media']], ['image', 'image', 'video'])
+        self.assertEqual(response.data['media'][0]['id'], kept.id)
+        self.assertFalse(default_storage.exists(removed.file))
+        self.assertTrue(default_storage.exists(kept.file))
+        post.refresh_from_db()
+        self.assertEqual(post.content, 'Edited')
+        self.assertEqual(post.createdAt, parse_datetime('2026-11-01T12:00:00Z'))
+        self.assertIsNotNone(post.editedAt)
+        reloaded = self.client.get(f'/api/posts/{post.id}/')
+        self.assertEqual(reloaded.data['media'], response.data['media'])
+
+    def test_edit_rejects_removal_of_another_posts_media_and_oversized_uploads(self):
+        first = self.client.post(self.group_url, {
+            'content': 'Original', 'uploads': [self.image()],
+        }, format='multipart')
+        second = self.client.post(self.group_url, {'uploads': [self.video()]}, format='multipart')
+        post = Post.objects.get(pk=first.data['id'])
+        original_media = post.media.get()
+        for payload in [
+            {'removedMedia': [second.data['media'][0]['id']]},
+            {'uploads': [self.video(8 * 1024 * 1024 + 1)], 'removedMedia': [original_media.id]},
+            {'uploads': [SimpleUploadedFile('file.txt', b'text', content_type='text/plain')]},
+        ]:
+            with self.subTest(fields=list(payload)):
+                response = self.client.patch(f'/api/posts/{post.id}/', {
+                    'content': 'Changed', **payload,
+                }, format='multipart')
+                self.assertEqual(response.status_code, 400)
+                post.refresh_from_db()
+                self.assertEqual(post.content, 'Original')
+                self.assertEqual(list(post.media.values_list('id', flat=True)), [original_media.id])
+                self.assertTrue(default_storage.exists(original_media.file))
+
+    def test_media_only_post_must_keep_or_replace_its_last_attachment(self):
+        response = self.client.post(self.group_url, {'uploads': [self.image()]}, format='multipart')
+        post_id = response.data['id']
+        media_id = response.data['media'][0]['id']
+        response = self.client.patch(f'/api/posts/{post_id}/', {
+            'removedMedia': [media_id],
+        }, format='json')
+        self.assertEqual(response.status_code, 400)
+        self.assertTrue(Media.objects.filter(pk=media_id).exists())
+        with self.captureOnCommitCallbacks(execute=True):
+            response = self.client.patch(f'/api/posts/{post_id}/', {
+                'removedMedia': [media_id], 'uploads': [self.video()],
+            }, format='multipart')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual([item['type'] for item in response.data['media']], ['video'])
+        self.assertFalse(Media.objects.filter(pk=media_id).exists())
+
+    def test_other_group_members_cannot_edit_attachments(self):
+        response = self.client.post(self.group_url, {'uploads': [self.image()]}, format='multipart')
+        post_id = response.data['id']
+        media_id = response.data['media'][0]['id']
+        self.client.force_authenticate(user=self.member)
+        response = self.client.patch(f'/api/posts/{post_id}/', {
+            'removedMedia': [media_id], 'uploads': [self.video()],
+        }, format='multipart')
+        self.assertEqual(response.status_code, 403)
+        self.assertEqual(list(Media.objects.values_list('id', flat=True)), [media_id])
+
+    def test_failed_edit_keeps_original_media_and_cleans_up_new_files(self):
+        from rest_framework.exceptions import APIException
+
+        response = self.client.post(self.group_url, {
+            'content': 'Original', 'uploads': [self.image()],
+        }, format='multipart')
+        post = Post.objects.get(pk=response.data['id'])
+        original_media = post.media.get()
+        saved_files = []
+
+        def save_or_fail(upload, key):
+            if saved_files:
+                raise APIException('Could not upload your media.')
+            saved_files.append(save_media_file(upload, key))
+            return saved_files[-1]
+
+        with patch('api.serializers.post.save_media_file', side_effect=save_or_fail):
+            response = self.client.patch(f'/api/posts/{post.id}/', {
+                'content': 'Changed', 'removedMedia': [original_media.id],
+                'uploads': [self.image(), self.video()],
+            }, format='multipart')
+        self.assertEqual(response.status_code, 500)
+        post.refresh_from_db()
+        self.assertEqual(post.content, 'Original')
+        self.assertEqual(list(post.media.values_list('id', flat=True)), [original_media.id])
+        self.assertTrue(default_storage.exists(original_media.file))
+        self.assertFalse(default_storage.exists(saved_files[0]))
+
     @override_settings(AWS_S3_BUCKET='media-test-bucket')
     def test_s3_uploads_return_signed_urls_and_delete_stored_objects(self):
         client = Mock()
