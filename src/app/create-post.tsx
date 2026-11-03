@@ -113,16 +113,6 @@ export default function CreatePost() {
           style={styles.formArea}
         >
           <ScrollView contentContainerStyle={styles.form} keyboardShouldPersistTaps="handled">
-            <TextInputThemed
-              autoFocus
-              multiline
-              onChangeText={setContent}
-              placeholder="Write a moment for this group"
-              style={styles.contentInput}
-              textAlignVertical="top"
-              value={content}
-            />
-
             <LoginButton
               text="Upload images / video"
               type="secondary"
@@ -134,6 +124,7 @@ export default function CreatePost() {
             {mediaError && <Text accessibilityRole="alert" style={styles.error}>{mediaError}</Text>}
             {media.length > 0 && (
               <PostMedia
+                compact
                 media={media.map((asset) => ({
                   id: asset.uri,
                   type: asset.type === 'video' ? 'video' : 'image',
@@ -142,6 +133,16 @@ export default function CreatePost() {
                 onRemove={isSaving ? undefined : (id) => setMedia((current) => current.filter((asset) => asset.uri !== id))}
               />
             )}
+
+            <TextInputThemed
+              autoFocus
+              multiline
+              onChangeText={setContent}
+              placeholder="Write a moment for this group"
+              style={styles.contentInput}
+              textAlignVertical="top"
+              value={content}
+            />
 
             <View style={styles.dateTimeSection}>
               <Text style={styles.label}>Post time</Text>
@@ -200,10 +201,13 @@ const styles = StyleSheet.create({
     minHeight: 180,
   },
   uploadButton: {
-    alignSelf: 'center',
+    alignSelf: 'flex-start',
+    width: 'auto',
+    height: 44,
+    paddingHorizontal: 12,
   },
   uploadLabel: {
-    fontSize: 20,
+    fontSize: 16,
   },
   dateTimeSection: {
     gap: 10,
