@@ -143,7 +143,7 @@ export default function Group() {
                                             userIcon={post.author.profilePicUrl
                                                 ? { uri: post.author.profilePicUrl }
                                                 : require('@/assets/images/placeholder/jet-the-hmmmawk.png')}
-                                            excerpt={`@${post.author.username}\n${post.content}`}
+                                            excerpt={`${post.content}`}
                                             tags={[]}
                                             emojiReacts={[]}
                                             commentNum={0}
