@@ -41,7 +41,7 @@ export default function Profile() {
         authApi.getMyPosts(token)
           .then((currentPosts) => {
             if (isActive) {
-              setPosts([...currentPosts].sort(
+              setPosts(currentPosts.filter((post) => !post.isDraft).sort(
                 (first, second) => Date.parse(first.createdAt) - Date.parse(second.createdAt),
               ));
             }
@@ -158,6 +158,14 @@ export default function Profile() {
                               commentNum={0}
                               isOwnPost
                               onDelete={() => deletePost(post.id)}
+                              onEditPress={() => router.push({
+                                pathname: '/edit-post',
+                                params: {
+                                  postId: String(post.id),
+                                  content: post.content,
+                                  createdAt: post.createdAt,
+                                },
+                              })}
                             />
                           );
                         })}

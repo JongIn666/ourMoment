@@ -1,5 +1,5 @@
 from django.db import transaction
-from django.db.models import Prefetch, Q
+from django.db.models import Exists, OuterRef, Prefetch, Q
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from rest_framework import status
@@ -8,7 +8,7 @@ from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-from ..models.group import Group, default_reaction_emojis
+from ..models.group import Group, GroupMember, default_reaction_emojis
 from ..models.post import Post
 from ..models.reaction import Reaction
 from ..serializers.post import PostReactionReadSerializer, PostReactionSerializer, PostSerializer
@@ -19,6 +19,16 @@ def current_user_reactions(user):
         'reactions',
         queryset=Reaction.objects.filter(user=user),
         to_attr='current_user_reactions',
+    )
+
+
+def posts_visible_to_user(user):
+    group_membership = GroupMember.objects.filter(group_id=OuterRef('group_id'), user=user)
+    return Post.objects.annotate(
+        current_user_is_group_member=Exists(group_membership),
+    ).filter(
+        Q(author=user)
+        | Q(current_user_is_group_member=True, isDraft=False)
     )
 
 
@@ -66,7 +76,7 @@ def group_posts(request, group_id):
         return Response(PostSerializer(post, context={'request': request}).data, status=status.HTTP_201_CREATED)
 
     posts = (
-        Post.objects.filter(group=group)
+        Post.objects.filter(group=group, isDraft=False)
         .select_related('author', 'author__profile')
         .prefetch_related('media', current_user_reactions(request.user))
         .order_by('-createdAt')
@@ -78,10 +88,9 @@ def group_posts(request, group_id):
 @permission_classes([IsAuthenticated])
 def post_detail(request, post_id):
     post = get_object_or_404(
-        Post.objects.filter(
-            Q(author=request.user, group__isnull=True)
-            | Q(group__groupmember__user=request.user)
-        ).select_related('author', 'author__profile', 'group').prefetch_related(
+        posts_visible_to_user(request.user)
+        .select_related('author', 'author__profile', 'group')
+        .prefetch_related(
             'media', current_user_reactions(request.user),
         ),
         pk=post_id,
@@ -95,8 +104,8 @@ def post_detail(request, post_id):
 
     if request.method == 'PATCH':
         provided_fields = set(request.data.keys())
-        if not provided_fields or not provided_fields <= {'content', 'createdAt', 'link', 'uploads', 'removedMedia'}:
-            raise ValidationError({'content': 'Provide post content, timestamp, media, or a link to edit.'})
+        if not provided_fields or not provided_fields <= {'content', 'createdAt', 'link', 'isDraft', 'uploads', 'removedMedia'}:
+            raise ValidationError({'content': 'Provide post content, timestamp, media, a link, or draft status to edit.'})
         serializer = PostSerializer(post, data=request.data, partial=True, context={'request': request})
         serializer.is_valid(raise_exception=True)
         updated_post = serializer.save(editedAt=timezone.now())
@@ -111,10 +120,7 @@ def post_detail(request, post_id):
 def post_reaction(request, post_id):
     if request.method == 'GET':
         post = get_object_or_404(
-            Post.objects.filter(
-                Q(author=request.user, group__isnull=True)
-                | Q(group__groupmember__user=request.user)
-            ),
+            posts_visible_to_user(request.user),
             pk=post_id,
         )
         reactions = post.reactions.select_related('user', 'user__profile').all()
@@ -126,10 +132,7 @@ def post_reaction(request, post_id):
 
     with transaction.atomic():
         post = get_object_or_404(
-            Post.objects.select_for_update(of=('self',)).filter(
-                Q(author=request.user, group__isnull=True)
-                | Q(group__groupmember__user=request.user)
-            ),
+            posts_visible_to_user(request.user).select_for_update(of=('self',)),
             pk=post_id,
         )
 

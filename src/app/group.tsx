@@ -183,14 +183,26 @@ export default function Group() {
                     </View>
                 </ScrollView>
                 {group && (
-                    <AddButton
-                        accessibilityLabel="Create post"
-                        onPress={() => router.push({
-                            pathname: '/create-post',
-                            params: { groupId: String(group.id) },
-                        })}
-                        style={styles.addPostButton}
-                    />
+                    <>
+                        <Pressable
+                            accessibilityRole="button"
+                            onPress={() => router.push({
+                                pathname: '/group-drafts',
+                                params: { groupId: String(group.id) },
+                            })}
+                            style={styles.draftsButton}
+                        >
+                            <Text style={styles.draftsButtonText}>Drafts</Text>
+                        </Pressable>
+                        <AddButton
+                            accessibilityLabel="Create post"
+                            onPress={() => router.push({
+                                pathname: '/create-post',
+                                params: { groupId: String(group.id) },
+                            })}
+                            style={styles.addPostButton}
+                        />
+                    </>
                 )}
             </SafeAreaViewThemed>
         </SafeAreaProvider>
@@ -215,6 +227,24 @@ const styles = StyleSheet.create({
         right: 20,
         bottom: 20,
     },
+  draftsButton: {
+    position: 'absolute',
+    right: 20,
+    bottom: 88,
+    minWidth: 76,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    borderWidth: 2,
+    borderColor: Colors.box.border,
+    backgroundColor: Colors.box.background,
+  },
+  draftsButtonText: {
+    color: Colors.interface.text,
+    fontSize: 14,
+    fontWeight: '600',
+  },
   mainContainer: {
     flexDirection: 'row',
     gap: 10,

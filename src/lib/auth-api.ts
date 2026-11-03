@@ -42,6 +42,7 @@ export type UserPost = {
   createdAt: string;
   content: string;
   link: string;
+  isDraft: boolean;
   editedAt: string | null;
   media: Media[];
   reactionCounts: Record<string, number>;
@@ -231,6 +232,11 @@ export function getMyPosts(token: string) {
   return apiFetch<UserPost[]>('/api/posts/mine/', {}, token);
 }
 
+export async function getGroupDrafts(token: string, groupId: number) {
+  const posts = await getMyPosts(token);
+  return posts.filter((post) => post.group === groupId && post.isDraft);
+}
+
 export function getPost(token: string, postId: number) {
   return apiFetch<UserPost>(`/api/posts/${postId}/`, {}, token);
 }
@@ -241,11 +247,13 @@ export function createPost(
   post: Pick<UserPost, 'content' | 'createdAt'>,
   media: ImagePickerAsset[] = [],
   link = '',
+  isDraft = false,
 ) {
   const body = new FormData();
   body.append('content', post.content);
   body.append('createdAt', post.createdAt);
   body.append('link', link);
+  body.append('isDraft', String(isDraft));
   media.forEach((asset) => {
     body.append('uploads', asset.file ?? new File(asset.uri));
   });
@@ -276,11 +284,13 @@ export function updatePost(
   media: ImagePickerAsset[] = [],
   removedMedia: number[] = [],
   link?: string,
+  isDraft?: boolean,
 ) {
   const body = new FormData();
   body.append('content', content);
   body.append('createdAt', createdAt);
   if (link !== undefined) body.append('link', link);
+  if (isDraft !== undefined) body.append('isDraft', String(isDraft));
   media.forEach((asset) => body.append('uploads', asset.file ?? new File(asset.uri)));
   removedMedia.forEach((id) => body.append('removedMedia', String(id)));
   return apiFetch<UserPost>(`/api/posts/${postId}/`, {

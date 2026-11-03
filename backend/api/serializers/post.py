@@ -70,7 +70,7 @@ class PostSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Post
-        fields = ['id', 'author', 'group', 'createdAt', 'content', 'link', 'editedAt', 'media', 'uploads', 'removedMedia', 'reactionCounts', 'myReactions']
+        fields = ['id', 'author', 'group', 'createdAt', 'content', 'link', 'isDraft', 'editedAt', 'media', 'uploads', 'removedMedia', 'reactionCounts', 'myReactions']
         read_only_fields = ['id', 'author', 'group', 'editedAt']
 
     def get_myReactions(self, post):
@@ -94,13 +94,14 @@ class PostSerializer(serializers.ModelSerializer):
     def validate(self, attrs):
         content = attrs.get('content', self.instance.content if self.instance else '')
         link = attrs.get('link', self.instance.link if self.instance else '')
+        is_draft = attrs.get('isDraft', self.instance.isDraft if self.instance else False)
         removed = set(attrs.get('removedMedia', []))
         if removed and (
             self.instance is None or self.instance.media.filter(pk__in=removed).count() != len(removed)
         ):
             raise serializers.ValidationError({'removedMedia': 'Choose media that belongs to this post.'})
         has_media = self.instance is not None and self.instance.media.exclude(pk__in=removed).exists()
-        if not content and not link and not attrs.get('uploads') and not has_media:
+        if not is_draft and not content and not link and not attrs.get('uploads') and not has_media:
             raise serializers.ValidationError({'content': 'Write a moment or add media or a link.'})
         return attrs
 

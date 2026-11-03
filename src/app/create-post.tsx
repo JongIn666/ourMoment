@@ -1,6 +1,7 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
+  ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -24,45 +25,112 @@ import { parsePostLink } from '@/lib/post-link';
 
 export default function CreatePost() {
   const router = useRouter();
-  const { groupId } = useLocalSearchParams<{ groupId?: string }>();
+  const { groupId, draftId } = useLocalSearchParams<{ groupId?: string; draftId?: string }>();
   const { token } = useAuth();
+  const [draftPost, setDraftPost] = useState<authApi.UserPost | null>(null);
   const [content, setContent] = useState('');
   const [link, setLink] = useState('');
   const { media, setMedia, isPicking, mediaError, handlePickMedia } = usePostMedia();
+  const [removedMedia, setRemovedMedia] = useState<number[]>([]);
   const [postDate, setPostDate] = useState(new Date());
+  const [isLoadingDraft, setIsLoadingDraft] = useState(Boolean(draftId));
   const [isSaving, setIsSaving] = useState(false);
+  const [isSavingDraft, setIsSavingDraft] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  async function handleCreate() {
+  useEffect(() => {
+    if (!draftId) return;
+
+    let isActive = true;
+    const id = Number(draftId);
+    const group = Number(groupId);
+    if (!token || !Number.isInteger(id) || id <= 0 || !Number.isInteger(group) || group <= 0) {
+      setError('This draft could not be found.');
+      setIsLoadingDraft(false);
+      return () => {
+        isActive = false;
+      };
+    }
+
+    setIsLoadingDraft(true);
+    setError(null);
+    authApi.getPost(token, id)
+      .then((post) => {
+        if (!isActive) return;
+        if (!post.isDraft || post.group !== group) {
+          throw new Error('This draft could not be found in this group.');
+        }
+        setDraftPost(post);
+        setContent(post.content);
+        setLink(post.link);
+        setPostDate(new Date(post.createdAt));
+        setRemovedMedia([]);
+        setMedia([]);
+      })
+      .catch((caughtError: unknown) => {
+        if (isActive) {
+          setError(caughtError instanceof Error ? caughtError.message : 'Could not load this draft.');
+        }
+      })
+      .finally(() => {
+        if (isActive) setIsLoadingDraft(false);
+      });
+
+    return () => {
+      isActive = false;
+    };
+  }, [draftId, groupId, token, setMedia]);
+
+  const attachments = [
+    ...(draftPost?.media ?? []).filter((item) => !removedMedia.includes(item.id)),
+    ...media.map((asset) => ({
+      id: asset.uri,
+      type: asset.type === 'video' ? 'video' as const : 'image' as const,
+      url: asset.uri,
+    })),
+  ];
+
+  async function handleCreate(isDraft = false) {
     const id = Number(groupId);
     const trimmedContent = content.trim();
     const trimmedLink = link.trim();
-    if (!token || !Number.isInteger(id) || id <= 0) {
+    if (!token || !Number.isInteger(id) || id <= 0 || isLoadingDraft || (draftId && !draftPost)) {
       setError('This group could not be found.');
       return;
     }
-    if (!trimmedContent && !trimmedLink && media.length === 0) {
+    if (!isDraft && !trimmedContent && !trimmedLink && attachments.length === 0) {
       setError('Write a moment or add media or a link.');
       return;
     }
 
     setError(null);
     setIsSaving(true);
+    setIsSavingDraft(isDraft);
     try {
       const postLink = parsePostLink(trimmedLink);
-      await authApi.createPost(token, id, {
-        content: trimmedContent,
-        createdAt: postDate.toISOString(),
-      }, media, postLink);
-      if (router.canGoBack()) {
-        router.back();
+      if (draftPost) {
+        await authApi.updatePost(
+          token,
+          draftPost.id,
+          trimmedContent,
+          postDate.toISOString(),
+          media,
+          removedMedia,
+          postLink,
+          isDraft,
+        );
       } else {
-        router.replace({ pathname: '/group', params: { groupId: String(id) } });
+        await authApi.createPost(token, id, {
+          content: trimmedContent,
+          createdAt: postDate.toISOString(),
+        }, media, postLink, isDraft);
       }
+      router.dismissTo({ pathname: '/group', params: { groupId: String(id) } });
     } catch (caughtError) {
       setError(caughtError instanceof Error ? caughtError.message : 'Could not create the post.');
     } finally {
       setIsSaving(false);
+      setIsSavingDraft(false);
     }
   }
 
@@ -71,8 +139,8 @@ export default function CreatePost() {
       <SafeAreaViewThemed style={styles.screen}>
         <BackButtonView />
         <View style={styles.heading}>
-          <Text style={styles.eyebrow}>NEW MOMENT</Text>
-          <Text style={styles.title}>Create post</Text>
+          <Text style={styles.eyebrow}>{draftId ? 'DRAFT' : 'NEW MOMENT'}</Text>
+          <Text style={styles.title}>{draftId ? 'Continue draft' : 'Create post'}</Text>
         </View>
 
         <KeyboardAvoidingView
@@ -83,27 +151,31 @@ export default function CreatePost() {
             <LoginButton
               text="Upload images / video"
               type="secondary"
-              disabled={isSaving || isPicking}
+              disabled={isLoadingDraft || isSaving || isPicking}
               onPress={handlePickMedia}
               style={styles.uploadButton}
               labelStyle={styles.uploadLabel}
             />
             {mediaError && <Text accessibilityRole="alert" style={styles.error}>{mediaError}</Text>}
-            {media.length > 0 && (
+            {isLoadingDraft && <ActivityIndicator color={Colors.heading} />}
+            {attachments.length > 0 && (
               <PostMedia
                 compact
-                media={media.map((asset) => ({
-                  id: asset.uri,
-                  type: asset.type === 'video' ? 'video' : 'image',
-                  url: asset.uri,
-                }))}
-                onRemove={isSaving ? undefined : (id) => setMedia((current) => current.filter((asset) => asset.uri !== id))}
+                media={attachments}
+                onRemove={isLoadingDraft || isSaving ? undefined : (id) => {
+                  if (typeof id === 'number') {
+                    setRemovedMedia((current) => [...current, id]);
+                  } else {
+                    setMedia((current) => current.filter((asset) => asset.uri !== id));
+                  }
+                }}
               />
             )}
 
             <Text style={styles.label}>caption</Text>
             <TextInputThemed
               autoFocus
+              editable={!isLoadingDraft && !isSaving}
               maxLength={100}
               multiline
               onChangeText={setContent}
@@ -117,7 +189,7 @@ export default function CreatePost() {
               accessibilityLabel="External link"
               autoCapitalize="none"
               autoCorrect={false}
-              editable={!isSaving && !isPicking}
+              editable={!isLoadingDraft && !isSaving && !isPicking}
               keyboardType="url"
               maxLength={2048}
               onChangeText={setLink}
@@ -137,10 +209,18 @@ export default function CreatePost() {
 
         <View style={styles.actions}>
           <LoginButton
-            text={isSaving ? 'Creating…' : 'Create post'}
+            text={isSaving && !isSavingDraft ? 'Creating…' : 'Create post'}
             type="primary"
-            disabled={isSaving || isPicking}
-            onPress={handleCreate}
+            disabled={isLoadingDraft || Boolean(draftId && !draftPost) || isSaving || isPicking}
+            onPress={() => handleCreate(false)}
+          />
+          <LoginButton
+            text={isSavingDraft ? 'Saving draft…' : 'Save as draft'}
+            type="secondary"
+            disabled={isLoadingDraft || Boolean(draftId && !draftPost) || isSaving || isPicking}
+            onPress={() => handleCreate(true)}
+            style={styles.draftButton}
+            labelStyle={styles.draftButtonLabel}
           />
         </View>
       </SafeAreaViewThemed>
@@ -201,6 +281,13 @@ const styles = StyleSheet.create({
   },
   actions: {
     alignItems: 'center',
+    gap: 10,
     paddingTop: 8,
+  },
+  draftButton: {
+    height: 52,
+  },
+  draftButtonLabel: {
+    fontSize: 20,
   },
 });
