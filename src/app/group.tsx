@@ -180,7 +180,11 @@ export default function Group() {
                     />
                 )}
 
-                <CreatePostModal visibleBoolean={creatingPost} closeFunction={() => setCreatingPost(false)}/>
+                <CreatePostModal
+                    visibleBoolean={creatingPost}
+                    closeFunction={() => setCreatingPost(false)}
+                    groupId={groupId}
+                />
             </SafeAreaViewThemed>
         </SafeAreaProvider>
     )
