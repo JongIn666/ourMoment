@@ -4,6 +4,8 @@ import { Image, Modal, Pressable, StyleSheet, Text, View, type ImageSourcePropTy
 import { useState } from 'react';
 
 import { WhiteBox } from '@/components/white-box';
+import { PostMedia } from '@/components/post-media';
+import type { Media } from '@/lib/auth-api';
 import { EmojiCount } from './emoji';
 import { ReactButton } from './react-button';
 
@@ -18,9 +20,10 @@ export type TimelinePostProps = ViewProps & {
   isOwnPost?: boolean,
   onDelete?: () => Promise<void>,
   onEditPress?: () => void,
+  media?: Media[],
 };
 
-export function TimelinePost({date, startOfDate, userIcon, excerpt, tags, emojiReacts, commentNum, isOwnPost = false, onDelete, onEditPress} : TimelinePostProps) {
+export function TimelinePost({date, startOfDate, userIcon, excerpt, tags, emojiReacts, commentNum, isOwnPost = false, onDelete, onEditPress, media = []} : TimelinePostProps) {
     const [showMoreActions, setShowMoreActions] = useState(false);
     const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
@@ -110,24 +113,7 @@ export function TimelinePost({date, startOfDate, userIcon, excerpt, tags, emojiR
                         </Link>
                     )}
                 </View>
-                <View style={styles.postRowMedia}>
-                    <Image
-                        source={require('@/assets/images/placeholder/slendy.jpg')}
-                        style={styles.postMedia}
-                    />
-                    <Image
-                        source={require('@/assets/images/placeholder/slendy.jpg')}
-                        style={styles.postMedia}
-                    />
-                    <Image
-                        source={require('@/assets/images/placeholder/slendy.jpg')}
-                        style={styles.postMedia}
-                    />
-                    <Image
-                        source={require('@/assets/images/placeholder/slendy.jpg')}
-                        style={styles.postMedia}
-                    />
-                </View>
+                {media.length > 0 && <PostMedia media={media} />}
                 <View style={styles.postRowReact}>
                     {emojiReacts.map((emojiReact) =>
                         <ReactButton
@@ -334,15 +320,6 @@ const styles = StyleSheet.create({
   },
   postTag: {
     color: Colors.interface.text
-  },
-  postRowMedia: {
-    flexDirection: 'row'
-  },
-  postMedia: {
-    width: 58,
-    height: 58,
-    borderWidth: 2,
-    borderColor: Colors.box.border
   },
   postRowReact: {
     flexDirection: 'row',

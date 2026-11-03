@@ -18,25 +18,27 @@ def my_posts(request):
     posts = (
         Post.objects.filter(author=request.user)
         .select_related('author', 'author__profile', 'group')
+        .prefetch_related('media')
         .order_by('-createdAt')
     )
-    return Response(PostSerializer(posts, many=True).data)
+    return Response(PostSerializer(posts, many=True, context={'request': request}).data)
 
 
 @api_view(['GET', 'POST'])
 @permission_classes([IsAuthenticated])
 def personal_posts(request):
     if request.method == 'POST':
-        serializer = PostSerializer(data=request.data)
+        serializer = PostSerializer(data=request.data, context={'request': request})
         serializer.is_valid(raise_exception=True)
         post = serializer.save(author=request.user, group=None)
-        return Response(PostSerializer(post).data, status=status.HTTP_201_CREATED)
+        return Response(PostSerializer(post, context={'request': request}).data, status=status.HTTP_201_CREATED)
 
     posts = (
         Post.objects.filter(author=request.user, group__isnull=True)
         .select_related('author', 'author__profile')
+        .prefetch_related('media')
     )
-    return Response(PostSerializer(posts, many=True).data)
+    return Response(PostSerializer(posts, many=True, context={'request': request}).data)
 
 
 @api_view(['GET', 'POST'])
@@ -48,17 +50,18 @@ def group_posts(request, group_id):
     )
 
     if request.method == 'POST':
-        serializer = PostSerializer(data=request.data)
+        serializer = PostSerializer(data=request.data, context={'request': request})
         serializer.is_valid(raise_exception=True)
         post = serializer.save(author=request.user, group=group)
-        return Response(PostSerializer(post).data, status=status.HTTP_201_CREATED)
+        return Response(PostSerializer(post, context={'request': request}).data, status=status.HTTP_201_CREATED)
 
     posts = (
         Post.objects.filter(group=group)
         .select_related('author', 'author__profile')
+        .prefetch_related('media')
         .order_by('-createdAt')
     )
-    return Response(PostSerializer(posts, many=True).data)
+    return Response(PostSerializer(posts, many=True, context={'request': request}).data)
 
 
 @api_view(['GET', 'PATCH', 'DELETE'])
@@ -68,12 +71,12 @@ def post_detail(request, post_id):
         Post.objects.filter(
             Q(author=request.user, group__isnull=True)
             | Q(group__groupmember__user=request.user)
-        ).select_related('author', 'author__profile', 'group'),
+        ).select_related('author', 'author__profile', 'group').prefetch_related('media'),
         pk=post_id,
     )
 
     if request.method == 'GET':
-        return Response(PostSerializer(post).data)
+        return Response(PostSerializer(post, context={'request': request}).data)
 
     if post.author_id != request.user.id:
         raise PermissionDenied('You can only edit or delete your own posts.')
@@ -82,10 +85,10 @@ def post_detail(request, post_id):
         provided_fields = set(request.data.keys())
         if not provided_fields or not provided_fields <= {'content', 'createdAt'}:
             raise ValidationError({'content': 'Provide the post content or timestamp to edit.'})
-        serializer = PostSerializer(post, data=request.data, partial=True)
+        serializer = PostSerializer(post, data=request.data, partial=True, context={'request': request})
         serializer.is_valid(raise_exception=True)
         updated_post = serializer.save(editedAt=timezone.now())
-        return Response(PostSerializer(updated_post).data)
+        return Response(PostSerializer(updated_post, context={'request': request}).data)
 
     post.delete()
     return Response(status=status.HTTP_204_NO_CONTENT)

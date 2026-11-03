@@ -1,7 +1,8 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { File } from 'expo-file-system';
+import * as ImagePicker from 'expo-image-picker';
 import { useState } from 'react';
 import {
-  ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -14,6 +15,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { BackButtonView } from '@/components/back-button-view';
 import { DateTimeFields } from '@/components/date-time-fields';
 import { LoginButton } from '@/components/login-button';
+import { PostMedia } from '@/components/post-media';
 import { SafeAreaViewThemed } from '@/components/safe-area-themed';
 import { TextInputThemed } from '@/components/text-input-themed';
 import { Colors } from '@/constants/theme';
@@ -25,9 +27,46 @@ export default function CreatePost() {
   const { groupId } = useLocalSearchParams<{ groupId?: string }>();
   const { token } = useAuth();
   const [content, setContent] = useState('');
+  const [media, setMedia] = useState<ImagePicker.ImagePickerAsset[]>([]);
+  const [isPicking, setIsPicking] = useState(false);
+  const [mediaError, setMediaError] = useState<string | null>(null);
   const [postDate, setPostDate] = useState(new Date());
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  async function handlePickMedia() {
+    setIsPicking(true);
+    setMediaError(null);
+    try {
+      const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!permission.granted) {
+        setMediaError('Allow photo and video access to upload media.');
+        return;
+      }
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images', 'videos'],
+        allowsMultipleSelection: true,
+        quality: 1,
+      });
+      if (result.canceled) return;
+
+      const selected = result.assets.filter((asset) => {
+        const size = asset.fileSize ?? asset.file?.size ?? new File(asset.uri).size;
+        if (size > 8 * 1024 * 1024) {
+          setMediaError('Each image or video must be 8 MB or smaller.');
+          return false;
+        }
+        return true;
+      });
+      setMedia((current) => [...current, ...selected.filter((asset) => (
+        !current.some((item) => item.uri === asset.uri)
+      ))]);
+    } catch (caughtError) {
+      setMediaError(caughtError instanceof Error ? caughtError.message : 'Could not select media.');
+    } finally {
+      setIsPicking(false);
+    }
+  }
 
   async function handleCreate() {
     const id = Number(groupId);
@@ -36,8 +75,8 @@ export default function CreatePost() {
       setError('This group could not be found.');
       return;
     }
-    if (!trimmedContent) {
-      setError('Write something before creating the post.');
+    if (!trimmedContent && media.length === 0) {
+      setError('Write a moment or add an image or video.');
       return;
     }
 
@@ -47,8 +86,12 @@ export default function CreatePost() {
       await authApi.createPost(token, id, {
         content: trimmedContent,
         createdAt: postDate.toISOString(),
-      });
-      router.back();
+      }, media);
+      if (router.canGoBack()) {
+        router.back();
+      } else {
+        router.replace({ pathname: '/group', params: { groupId: String(id) } });
+      }
     } catch (caughtError) {
       setError(caughtError instanceof Error ? caughtError.message : 'Could not create the post.');
     } finally {
@@ -70,7 +113,6 @@ export default function CreatePost() {
           style={styles.formArea}
         >
           <ScrollView contentContainerStyle={styles.form} keyboardShouldPersistTaps="handled">
-            <Text style={styles.label}>Your post</Text>
             <TextInputThemed
               autoFocus
               multiline
@@ -80,6 +122,26 @@ export default function CreatePost() {
               textAlignVertical="top"
               value={content}
             />
+
+            <LoginButton
+              text="Upload images / video"
+              type="secondary"
+              disabled={isSaving || isPicking}
+              onPress={handlePickMedia}
+              style={styles.uploadButton}
+              labelStyle={styles.uploadLabel}
+            />
+            {mediaError && <Text accessibilityRole="alert" style={styles.error}>{mediaError}</Text>}
+            {media.length > 0 && (
+              <PostMedia
+                media={media.map((asset) => ({
+                  id: asset.uri,
+                  type: asset.type === 'video' ? 'video' : 'image',
+                  url: asset.uri,
+                }))}
+                onRemove={isSaving ? undefined : (id) => setMedia((current) => current.filter((asset) => asset.uri !== id))}
+              />
+            )}
 
             <View style={styles.dateTimeSection}>
               <Text style={styles.label}>Post time</Text>
@@ -94,7 +156,7 @@ export default function CreatePost() {
           <LoginButton
             text={isSaving ? 'Creating…' : 'Create post'}
             type="primary"
-            disabled={isSaving}
+            disabled={isSaving || isPicking}
             onPress={handleCreate}
           />
         </View>
@@ -136,6 +198,12 @@ const styles = StyleSheet.create({
   },
   contentInput: {
     minHeight: 180,
+  },
+  uploadButton: {
+    alignSelf: 'center',
+  },
+  uploadLabel: {
+    fontSize: 20,
   },
   dateTimeSection: {
     gap: 10,

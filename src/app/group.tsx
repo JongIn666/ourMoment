@@ -140,6 +140,7 @@ export default function Group() {
                                         ? { uri: post.author.profilePicUrl }
                                         : require('@/assets/images/placeholder/jet-the-hmmmawk.png')}
                                     excerpt={`@${post.author.username}\n${post.content}`}
+                                    media={post.media}
                                     tags={[]}
                                     emojiReacts={[]}
                                     commentNum={0}
@@ -207,7 +208,7 @@ const styles = StyleSheet.create({
     width: "100%"
   },
   postsContain: {
-    flexShrink: 1
+    flex: 1
     },
     postsState: {
         alignItems: 'center',

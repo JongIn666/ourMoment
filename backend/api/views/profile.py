@@ -16,6 +16,7 @@ from rest_framework.response import Response
 
 from ..models.profile import Profile
 from ..serializers import ProfileSerializer
+from ..storage import get_s3_client
 
 logger = logging.getLogger(__name__)
 
@@ -26,20 +27,6 @@ PROFILE_PICTURE_TYPES = {
     'image/heic': 'heic',
 }
 PROFILE_PICTURE_MAX_BYTES = 5 * 1024 * 1024
-
-
-def get_s3_client():
-    try:
-        import boto3
-    except ImportError as error:
-        raise APIException('S3 uploads are not installed. Run pip install -r backend/requirements.txt.') from error
-
-    return boto3.client(
-        's3',
-        region_name=settings.AWS_REGION,
-        aws_access_key_id=settings.AWS_ACCESS_KEY_ID or None,
-        aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY or None,
-    )
 
 
 def get_s3_key_from_profile_picture_url(profile_picture_url):

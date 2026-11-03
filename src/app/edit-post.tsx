@@ -44,11 +44,6 @@ export default function EditPost() {
       setError('This post could not be found.');
       return;
     }
-    if (!trimmedContent) {
-      setError('Write something before saving the post.');
-      return;
-    }
-
     setError(null);
     setIsSaving(true);
     try {
@@ -75,7 +70,6 @@ export default function EditPost() {
           style={styles.formArea}
         >
           <ScrollView contentContainerStyle={styles.form} keyboardShouldPersistTaps="handled">
-            <Text style={styles.label}>Your post</Text>
             <TextInputThemed
               autoFocus
               multiline

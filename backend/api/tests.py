@@ -1,10 +1,192 @@
+import base64
+from pathlib import Path
+from tempfile import TemporaryDirectory
+from unittest.mock import Mock, patch
+
 from django.contrib.auth import get_user_model
+from django.core.files.storage import default_storage
+from django.core.files.uploadedfile import SimpleUploadedFile
+from django.test import override_settings
 from django.utils.dateparse import parse_datetime
 from rest_framework.test import APIClient, APITestCase
 
-from .models import Group, GroupMember, Post, Profile
+from .models import Group, GroupMember, Media, Post, Profile
+from .storage import save_media_file
 
 User = get_user_model()
+
+
+class PostMediaTests(APITestCase):
+    @classmethod
+    def setUpTestData(cls):
+        cls.owner = User.objects.create_user(username='media-owner')
+        cls.member = User.objects.create_user(username='media-member')
+        cls.outsider = User.objects.create_user(username='media-outsider')
+        cls.group = Group.objects.create(name='Media group')
+        GroupMember.objects.create(user=cls.owner, group=cls.group)
+        GroupMember.objects.create(user=cls.member, group=cls.group)
+
+    def setUp(self):
+        directory = TemporaryDirectory()
+        self.addCleanup(directory.cleanup)
+        self.media_root = directory.name
+        settings_override = override_settings(AWS_S3_BUCKET='', MEDIA_ROOT=self.media_root)
+        settings_override.enable()
+        self.addCleanup(settings_override.disable)
+        self.client.force_authenticate(user=self.owner)
+        self.group_url = f'/api/groups/{self.group.id}/posts/'
+
+    def image(self, size=None):
+        content = base64.b64decode(
+            'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aHioAAAAASUVORK5CYII='
+        ) if size is None else b'x' * size
+        return SimpleUploadedFile('photo.png', content, content_type='image/png')
+
+    def video(self, size=32):
+        return SimpleUploadedFile('clip.mp4', b'x' * size, content_type='video/mp4')
+
+    def test_multiple_images_and_video_persist_and_reload_in_order(self):
+        response = self.client.post(self.group_url, {
+            'content': 'With attachments',
+            'uploads': [self.image(), self.video(), self.image()],
+        }, format='multipart')
+        self.assertEqual(response.status_code, 201)
+        post = Post.objects.get(pk=response.data['id'])
+        self.assertEqual(list(post.media.values_list('type', flat=True)), ['image', 'video', 'image'])
+        self.assertEqual([item['type'] for item in response.data['media']], ['image', 'video', 'image'])
+        for media in post.media.all():
+            self.assertTrue(default_storage.exists(media.file))
+
+        client = APIClient()
+        client.force_authenticate(user=self.owner)
+        for url in [self.group_url, '/api/posts/mine/', f'/api/posts/{post.id}/']:
+            response = client.get(url)
+            self.assertEqual(response.status_code, 200)
+            data = response.data[0] if isinstance(response.data, list) else response.data
+            self.assertEqual(len(data['media']), 3)
+
+    def test_media_only_posts_are_allowed_and_remain_editable(self):
+        response = self.client.post('/api/posts/', {'uploads': [self.image()]}, format='multipart')
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(response.data['content'], '')
+        response = self.client.patch(f"/api/posts/{response.data['id']}/", {
+            'content': '', 'createdAt': '2026-11-01T12:00:00Z',
+        }, format='json')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data['media']), 1)
+
+    def test_oversized_images_and_videos_are_rejected_before_any_files_are_saved(self):
+        for oversized in [self.image(8 * 1024 * 1024 + 1), self.video(8 * 1024 * 1024 + 1)]:
+            with self.subTest(type=oversized.content_type):
+                response = self.client.post(self.group_url, {
+                    'content': 'Too large', 'uploads': [self.image(), oversized],
+                }, format='multipart')
+                self.assertEqual(response.status_code, 400)
+                self.assertIn('8 MB', str(response.data))
+                self.assertFalse(Post.objects.exists())
+                self.assertFalse(Media.objects.exists())
+                self.assertEqual(list(Path(self.media_root).rglob('*')), [])
+
+    def test_exactly_eight_mb_is_allowed_and_limit_is_per_file(self):
+        response = self.client.post(self.group_url, {
+            'content': 'At the limit', 'uploads': [self.image(8 * 1024 * 1024), self.video()],
+        }, format='multipart')
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(len(response.data['media']), 2)
+
+    def test_non_media_uploads_are_rejected(self):
+        response = self.client.post(self.group_url, {
+            'content': 'Document',
+            'uploads': [SimpleUploadedFile('file.txt', b'text', content_type='text/plain')],
+        }, format='multipart')
+        self.assertEqual(response.status_code, 400)
+        self.assertFalse(Post.objects.exists())
+
+    def test_personal_media_is_only_accessible_to_its_author(self):
+        response = self.client.post('/api/posts/', {'uploads': [self.image()]}, format='multipart')
+        post_id = response.data['id']
+        media_url = f"/api/media/{response.data['media'][0]['id']}/"
+        response = self.client.get(media_url)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response['Content-Type'], 'image/png')
+        self.assertEqual(b''.join(response.streaming_content), self.image().read())
+
+        self.client.force_authenticate(user=self.member)
+        self.assertEqual(self.client.get(media_url).status_code, 404)
+        self.assertEqual(self.client.get(f'/api/posts/{post_id}/').status_code, 404)
+        self.client.force_authenticate(user=None)
+        self.assertEqual(self.client.get(media_url).status_code, 401)
+
+    def test_group_media_requires_current_membership(self):
+        response = self.client.post(self.group_url, {'uploads': [self.video()]}, format='multipart')
+        media_url = f"/api/media/{response.data['media'][0]['id']}/"
+        self.client.force_authenticate(user=self.member)
+        response = self.client.get(media_url)
+        self.assertEqual(response.status_code, 200)
+        response.close()
+        GroupMember.objects.filter(user=self.member, group=self.group).delete()
+        self.assertEqual(self.client.get(media_url).status_code, 404)
+        self.client.force_authenticate(user=self.outsider)
+        self.assertEqual(self.client.get(media_url).status_code, 404)
+
+    def test_unauthenticated_users_and_nonmembers_cannot_upload(self):
+        for user, expected_status in [(None, 401), (self.outsider, 404)]:
+            with self.subTest(user=user):
+                self.client.force_authenticate(user=user)
+                response = self.client.post(self.group_url, {'uploads': [self.image()]}, format='multipart')
+                self.assertEqual(response.status_code, expected_status)
+        self.assertFalse(Media.objects.exists())
+
+    def test_deleting_a_post_removes_its_media_and_files(self):
+        response = self.client.post(self.group_url, {'uploads': [self.image(), self.video()]}, format='multipart')
+        files = list(Media.objects.values_list('file', flat=True))
+        with self.captureOnCommitCallbacks(execute=True):
+            response = self.client.delete(f"/api/posts/{response.data['id']}/")
+        self.assertEqual(response.status_code, 204)
+        self.assertFalse(Media.objects.exists())
+        self.assertTrue(all(not default_storage.exists(key) for key in files))
+
+    def test_upload_failure_rolls_back_post_and_cleans_up_saved_files(self):
+        from rest_framework.exceptions import APIException
+
+        saved_files = []
+
+        def save_or_fail(upload, key):
+            if saved_files:
+                raise APIException('Could not upload your media.')
+            saved_files.append(save_media_file(upload, key))
+            return saved_files[-1]
+
+        with patch('api.serializers.post.save_media_file', side_effect=save_or_fail):
+            response = self.client.post(self.group_url, {
+                'content': 'Upload failure', 'uploads': [self.image(), self.video()],
+            }, format='multipart')
+        self.assertEqual(response.status_code, 500)
+        self.assertFalse(Post.objects.exists())
+        self.assertFalse(Media.objects.exists())
+        self.assertFalse(default_storage.exists(saved_files[0]))
+
+    @override_settings(AWS_S3_BUCKET='media-test-bucket')
+    def test_s3_uploads_return_signed_urls_and_delete_stored_objects(self):
+        client = Mock()
+        client.generate_presigned_url.return_value = 'https://example.com/signed-video.mp4'
+        with patch('api.storage.get_s3_client', return_value=client), patch(
+            'api.serializers.media.get_s3_client', return_value=client,
+        ):
+            response = self.client.post(self.group_url, {'uploads': [self.video()]}, format='multipart')
+            self.assertEqual(response.status_code, 201)
+            media = Media.objects.get()
+            self.assertEqual(response.data['media'][0]['url'], 'https://example.com/signed-video.mp4')
+            self.assertEqual(client.upload_fileobj.call_args.kwargs['ExtraArgs'], {'ContentType': 'video/mp4'})
+            client.generate_presigned_url.assert_called_with(
+                'get_object', Params={'Bucket': 'media-test-bucket', 'Key': media.file}, ExpiresIn=3600,
+            )
+            response_media = self.client.get(f'/api/media/{media.pk}/')
+            self.assertEqual(response_media.status_code, 302)
+            self.assertEqual(response_media['Location'], 'https://example.com/signed-video.mp4')
+            with self.captureOnCommitCallbacks(execute=True):
+                self.client.delete(f"/api/posts/{response.data['id']}/")
+            client.delete_object.assert_called_once_with(Bucket='media-test-bucket', Key=media.file)
 
 
 class PersonalPostTests(APITestCase):

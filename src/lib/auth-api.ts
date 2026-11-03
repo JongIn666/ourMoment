@@ -1,4 +1,5 @@
 import { API_URL } from '@/constants/api';
+import type { ImagePickerAsset } from 'expo-image-picker';
 
 export type Profile = {
   username: string;
@@ -38,6 +39,13 @@ export type UserPost = {
   createdAt: string;
   content: string;
   editedAt: string | null;
+  media: Media[];
+};
+
+export type Media = {
+  id: number;
+  type: 'image' | 'video';
+  url: string;
 };
 
 export type GroupMember = {
@@ -221,10 +229,21 @@ export function createPost(
   token: string,
   groupId: number,
   post: Pick<UserPost, 'content' | 'createdAt'>,
+  media: ImagePickerAsset[] = [],
 ) {
+  const body = new FormData();
+  body.append('content', post.content);
+  body.append('createdAt', post.createdAt);
+  media.forEach((asset) => {
+    body.append('uploads', asset.file ?? {
+      uri: asset.uri,
+      name: asset.fileName ?? (asset.type === 'video' ? 'video.mp4' : 'image.jpg'),
+      type: asset.mimeType ?? (asset.type === 'video' ? 'video/mp4' : 'image/jpeg'),
+    } as unknown as Blob);
+  });
   return apiFetch<UserPost>(`/api/groups/${groupId}/posts/`, {
     method: 'POST',
-    body: JSON.stringify(post),
+    body,
   }, token);
 }
 

@@ -2,5 +2,6 @@
 from .profile import Profile
 from .group import Group, GroupMember
 from .post import Post
+from .media import Media
 
-__all__ = ['Profile', 'Group', 'GroupMember', 'Post']
+__all__ = ['Profile', 'Group', 'GroupMember', 'Post', 'Media']
