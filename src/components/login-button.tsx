@@ -1,10 +1,14 @@
 import { Colors } from '@/constants/theme';
 import { Pressable, StyleSheet, Text, type PressableProps, type StyleProp, type TextStyle } from 'react-native';
 
-export type LoginButtonProps = PressableProps & {
+export type ButtonProps = PressableProps & {
   text: string,
   type?: 'primary' | 'secondary';
   labelStyle?: StyleProp<TextStyle>
+};
+
+export type LoginButtonProps = ButtonProps & {
+  type?: 'primary' | 'secondary'
 };
 
 export function LoginButton({ text, type, style, labelStyle, ...rest }: LoginButtonProps) {
@@ -21,6 +25,29 @@ export function LoginButton({ text, type, style, labelStyle, ...rest }: LoginBut
                 style={[
                   styles.label,
                   type == "primary" ? styles.primaryLabel: styles.secondaryLabel,
+                  labelStyle
+                ]}
+            >
+              { text }
+            </Text>
+        </Pressable>
+    )
+}
+
+export function DangerButton({ text, style, labelStyle, ...rest }: ButtonProps) {
+    return (
+        <Pressable
+            style={(state) => [
+              styles.button,
+              styles.dangerButton,
+              typeof style === 'function' ? style(state) : style,
+            ]}
+            {...rest}
+        >
+            <Text
+                style={[
+                  styles.label,
+                  styles.dangerLabel,
                   labelStyle
                 ]}
             >
@@ -53,5 +80,12 @@ const styles = StyleSheet.create({
   },
   secondaryLabel: {
     color: Colors.button.secondary.label
+  },
+  dangerButton: {
+    backgroundColor: Colors.button.danger.color,
+    borderColor: Colors.button.danger.border
+  },
+  dangerLabel: {
+    color: Colors.button.danger.label
   }
 });

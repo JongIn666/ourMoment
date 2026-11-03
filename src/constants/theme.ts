@@ -10,7 +10,9 @@ const colorPalette = {
     lightGray: '#E6E6E6',
     midLightGray: '#D9D9D9',
     midDarkGray: '#A1A1A1',
-    darkGray: '#949494'
+    darkGray: '#949494',
+    midRed: '#e61919',
+    darkRed: '#940404'
 };
 
 export const Colors = {
@@ -33,6 +35,11 @@ export const Colors = {
         secondary: {
             border: colorPalette.midLime,
             label: colorPalette.midLime
+        },
+        danger: {
+            color: colorPalette.midRed,
+            border: colorPalette.darkRed,
+            label: colorPalette.white
         }
     },
     icon: {
