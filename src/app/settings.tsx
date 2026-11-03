@@ -1,6 +1,6 @@
 import { SafeAreaViewThemed } from "@/components/safe-area-themed";
 import { useRouter } from "expo-router";
-import { StyleSheet, Text } from "react-native";
+import { ScrollView, StyleSheet, Text } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import { BackButtonView } from "@/components/back-button-view";
@@ -23,34 +23,43 @@ export default function Settings() {
       <SafeAreaViewThemed style={styles.container}>
         <BackButtonView />
 
-        <Text style={styles.heading}>Settings</Text>
+        <ScrollView style={styles.scrollView} contentContainerStyle={styles.content}>
+          <Text style={styles.heading}>Settings</Text>
 
-        <LoginButton
-          text="Edit username"
-          type="primary"
-          onPress={() => router.navigate("/edit-username")}
-        />
+          <LoginButton
+            text="Edit username"
+            type="primary"
+            onPress={() => router.navigate("/edit-username")}
+          />
 
-        <LoginButton
-          text="Edit email"
-          type="primary"
-          onPress={() => router.navigate("/edit-email")}
-        />
+          <LoginButton
+            text="Edit email"
+            type="primary"
+            onPress={() => router.navigate("/edit-email")}
+          />
 
-        <LoginButton
-          text="Edit password"
-          type="primary"
-          onPress={() => router.navigate("/edit-password")}
-        />
+          <LoginButton
+            text="Edit password"
+            type="primary"
+            onPress={() => router.navigate("/edit-password")}
+          />
 
-        <LoginButton
-          text="Edit profile picture"
-          type="primary"
-          onPress={() => router.navigate("/edit-profile-picture")}
-          labelStyle={styles.profilePictureLabel}
-        />
+          <LoginButton
+            text="Edit profile picture"
+            type="primary"
+            onPress={() => router.navigate("/edit-profile-picture")}
+            labelStyle={styles.profilePictureLabel}
+          />
 
-        <LoginButton text="Log out" type="secondary" onPress={handleLogOut} />
+          <LoginButton
+            text="Join from invite code"
+            type="primary"
+            onPress={() => router.navigate("/join-group")}
+            labelStyle={styles.profilePictureLabel}
+          />
+
+          <LoginButton text="Log out" type="secondary" onPress={handleLogOut} />
+        </ScrollView>
       </SafeAreaViewThemed>
     </SafeAreaProvider>
   );
@@ -59,6 +68,14 @@ export default function Settings() {
 const styles = StyleSheet.create({
   container: {
     gap: 16,
+  },
+  scrollView: {
+    alignSelf: "stretch",
+  },
+  content: {
+    alignItems: "center",
+    gap: 16,
+    paddingBottom: 16,
   },
   heading: {
     alignSelf: "flex-start",

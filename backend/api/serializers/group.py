@@ -42,7 +42,8 @@ class GroupSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Group
-        fields = ['id', 'name', 'description', 'members', 'createdAt']
+        fields = ['id', 'name', 'description', 'inviteCode', 'members', 'createdAt']
+        read_only_fields = ['inviteCode']
 
     def validate_name(self, value):
         name = value.strip()
@@ -53,3 +54,10 @@ class GroupSerializer(serializers.ModelSerializer):
                 'Group name can contain only letters, numbers, and spaces.'
             )
         return name
+
+
+class JoinGroupSerializer(serializers.Serializer):
+    inviteCode = serializers.CharField(min_length=10, max_length=10)
+
+    def validate_inviteCode(self, value):
+        return value.upper()

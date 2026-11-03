@@ -60,6 +60,13 @@ export default function GroupMembers() {
           <Text style={styles.title}>{group?.name ?? 'Members'}</Text>
         </View>
 
+        {!isLoading && !error && group && (
+          <WhiteBox style={styles.inviteBox}>
+            <Text style={styles.eyebrow}>INVITE CODE</Text>
+            <Text selectable style={styles.inviteCode}>{group.inviteCode}</Text>
+          </WhiteBox>
+        )}
+
         {isLoading ? (
           <ActivityIndicator color={Colors.heading} />
         ) : error ? (
@@ -149,6 +156,19 @@ const styles = StyleSheet.create({
   memberList: {
     gap: 12,
     paddingBottom: 20,
+  },
+  inviteBox: {
+    alignSelf: 'center',
+    width: '100%',
+    maxWidth: 420,
+    padding: 12,
+    gap: 4,
+  },
+  inviteCode: {
+    color: Colors.heading,
+    fontSize: 26,
+    fontWeight: '700',
+    letterSpacing: 2,
   },
   memberRow: {
     flexDirection: 'row',

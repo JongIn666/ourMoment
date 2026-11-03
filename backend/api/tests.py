@@ -165,6 +165,74 @@ class PersonalPostTests(APITestCase):
         self.assertEqual(self.client.delete(detail_url).status_code, 403)
 
 
+class GroupInviteTests(APITestCase):
+    @classmethod
+    def setUpTestData(cls):
+        cls.member = User.objects.create_user(username='member')
+        cls.joiner = User.objects.create_user(username='joiner')
+        cls.group = Group.objects.create(name='Invited group')
+        GroupMember.objects.create(user=cls.member, group=cls.group)
+
+    def setUp(self):
+        self.client.force_authenticate(user=self.joiner)
+
+    def test_new_groups_get_distinct_codes_that_members_can_read(self):
+        response = self.client.post('/api/groups/', {'name': 'New group'}, format='json')
+        self.assertEqual(response.status_code, 201)
+        code = response.data['inviteCode']
+        self.assertEqual(len(code), 10)
+        self.assertNotEqual(code, self.group.inviteCode)
+        response = self.client.get(f"/api/groups/{response.data['id']}/")
+        self.assertEqual(response.data['inviteCode'], code)
+
+    def test_nonmembers_cannot_read_group_or_invite_code_until_they_join(self):
+        self.assertEqual(self.client.get(f'/api/groups/{self.group.id}/').status_code, 404)
+        self.assertEqual(self.client.get('/api/groups/').data, [])
+        response = self.client.post('/api/groups/join/', {
+            'inviteCode': f' {self.group.inviteCode.lower()} ',
+        }, format='json')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['id'], self.group.id)
+        self.assertTrue(GroupMember.objects.filter(user=self.joiner, group=self.group).exists())
+        response = self.client.get(f'/api/groups/{self.group.id}/')
+        self.assertEqual(response.status_code, 200)
+        self.assertIn(self.joiner.id, [member['id'] for member in response.data['members']])
+        self.assertEqual(self.client.get('/api/groups/').data[0]['id'], self.group.id)
+        self.assertEqual(self.client.get(f'/api/groups/{self.group.id}/posts/').status_code, 200)
+
+    def test_join_requires_authentication(self):
+        self.client.force_authenticate(user=None)
+        response = self.client.post('/api/groups/join/', {'inviteCode': self.group.inviteCode}, format='json')
+        self.assertEqual(response.status_code, 401)
+        self.assertFalse(GroupMember.objects.filter(user=self.joiner, group=self.group).exists())
+
+    def test_invalid_codes_do_not_add_members(self):
+        for payload in [{}, {'inviteCode': ''}, {'inviteCode': 'short'}, {'inviteCode': '0000000000'}]:
+            with self.subTest(payload=payload):
+                response = self.client.post('/api/groups/join/', payload, format='json')
+                self.assertEqual(response.status_code, 400)
+        self.assertFalse(GroupMember.objects.filter(user=self.joiner, group=self.group).exists())
+
+    def test_repeated_join_does_not_duplicate_membership(self):
+        for _ in range(2):
+            response = self.client.post('/api/groups/join/', {'inviteCode': self.group.inviteCode}, format='json')
+            self.assertEqual(response.status_code, 200)
+        self.assertEqual(GroupMember.objects.filter(user=self.joiner, group=self.group).count(), 1)
+
+    def test_members_cannot_set_or_change_the_invite_code(self):
+        response = self.client.post('/api/groups/', {
+            'name': 'Another group', 'inviteCode': '0000000000',
+        }, format='json')
+        self.assertEqual(response.status_code, 201)
+        code = response.data['inviteCode']
+        self.assertNotEqual(code, '0000000000')
+        response = self.client.patch(f"/api/groups/{response.data['id']}/", {
+            'inviteCode': self.group.inviteCode,
+        }, format='json')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['inviteCode'], code)
+
+
 class UserPersistenceTests(APITestCase):
     def test_registration_saves_user_and_profile_and_allows_login(self):
         password = 'moment-passphrase-2026'

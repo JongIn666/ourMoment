@@ -1,5 +1,5 @@
 import { Colors } from '@/constants/theme';
-import { Pressable, StyleSheet, Text, type PressableProps, type StyleProp, type TextStyle } from 'react-native';
+import { Keyboard, Pressable, StyleSheet, Text, type PressableProps, type StyleProp, type TextStyle } from 'react-native';
 
 export type LoginButtonProps = PressableProps & {
   text: string,
@@ -7,7 +7,7 @@ export type LoginButtonProps = PressableProps & {
   labelStyle?: StyleProp<TextStyle>
 };
 
-export function LoginButton({ text, type, style, labelStyle, ...rest }: LoginButtonProps) {
+export function LoginButton({ text, type, style, labelStyle, onPress, ...rest }: LoginButtonProps) {
     return (
         <Pressable
             style={(state) => [
@@ -16,6 +16,10 @@ export function LoginButton({ text, type, style, labelStyle, ...rest }: LoginBut
               typeof style === 'function' ? style(state) : style,
             ]}
             {...rest}
+            onPress={(event) => {
+              Keyboard.dismiss();
+              onPress?.(event);
+            }}
         >
             <Text
                 style={[

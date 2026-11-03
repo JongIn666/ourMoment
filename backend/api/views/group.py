@@ -1,12 +1,14 @@
 from django.db import transaction
 from django.shortcuts import get_object_or_404
 from rest_framework.decorators import api_view, permission_classes
+from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework import status
 
 from ..models.group import Group, GroupMember
 from ..serializers import GroupSerializer
+from ..serializers.group import JoinGroupSerializer
 
 @api_view(['GET', 'POST'])
 @permission_classes([IsAuthenticated])
@@ -29,6 +31,18 @@ def group(request):
         .distinct()
     )
     return Response(GroupSerializer(user_groups, many=True).data)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def join_group(request):
+    serializer = JoinGroupSerializer(data=request.data)
+    serializer.is_valid(raise_exception=True)
+    user_group = Group.objects.filter(inviteCode=serializer.validated_data['inviteCode']).first()
+    if user_group is None:
+        raise ValidationError({'inviteCode': 'Invalid invite code.'})
+    GroupMember.objects.get_or_create(user=request.user, group=user_group)
+    return Response(GroupSerializer(user_group).data)
 
 
 @api_view(['GET', 'PATCH', 'DELETE'])

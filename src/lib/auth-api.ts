@@ -22,6 +22,7 @@ export type UserGroup = {
   id: number;
   name: string;
   description: string;
+  inviteCode: string;
   members: GroupMember[];
   createdAt: string;
 };
@@ -199,6 +200,13 @@ export function createGroup(
 
 export function getGroup(token: string, groupId: number) {
   return apiFetch<UserGroup>(`/api/groups/${groupId}/`, {}, token);
+}
+
+export function joinGroup(token: string, inviteCode: string) {
+  return apiFetch<UserGroup>('/api/groups/join/', {
+    method: 'POST',
+    body: JSON.stringify({ inviteCode }),
+  }, token);
 }
 
 export function getGroupPosts(token: string, groupId: number) {
