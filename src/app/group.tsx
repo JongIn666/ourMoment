@@ -25,6 +25,7 @@ import { TimelinePost } from "@/components/timeline-post";
 import { useAuth } from "@/context/auth";
 import * as authApi from "@/lib/auth-api";
 
+import { PostFilterMenu } from "@/components/post-filter-menu";
 import {
     emptyFilters,
     filterPosts,
@@ -40,6 +41,7 @@ export default function Group() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [filters, setFilters] = useState<PostFilters>(emptyFilters);
+  const [isFilterMenuOpen, setIsFilterMenuOpen] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
@@ -101,7 +103,11 @@ export default function Group() {
               />
             </Pressable>
 
-            <Pressable>
+            <Pressable
+              accessibilityLabel="Filter Posts"
+              hitSlop={8}
+              onPress={() => setIsFilterMenuOpen(true)}
+            >
               <FontAwesomeIcon
                 icon={faFilter}
                 size={32}
@@ -163,13 +169,19 @@ export default function Group() {
               </View>
             ) : error ? (
               <Text style={styles.postsEmpty}>{error}</Text>
-            ) : visiblePosts.length === 0 ? (
+            ) : posts.length === 0 ? (
               <Text style={styles.postsEmpty}>No posts in this group yet.</Text>
+            ) : visiblePosts.length === 0 ? (
+              <Text style={styles.postsEmpty}>
+                No posts match these filters.
+              </Text>
             ) : (
               visiblePosts.map((post, index) => {
                 const postDate = new Date(post.createdAt);
                 const previousDate =
-                  index > 0 ? new Date(posts[index - 1].createdAt) : null;
+                  index > 0
+                    ? new Date(visiblePosts[index - 1].createdAt)
+                    : null;
                 const startsNewDate =
                   !previousDate ||
                   postDate.toDateString() !== previousDate.toDateString();
@@ -263,6 +275,12 @@ export default function Group() {
             />
           </>
         )}
+        <PostFilterMenu
+          visible={isFilterMenuOpen}
+          filters={filters}
+          onChange={setFilters}
+          onClose={() => setIsFilterMenuOpen(false)}
+        />
       </SafeAreaViewThemed>
     </SafeAreaProvider>
   );
