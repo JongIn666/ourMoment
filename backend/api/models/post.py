@@ -3,6 +3,19 @@ from django.db import models
 from django.utils import timezone
 
 
+WEATHER_CHOICES = [
+	('', 'No weather'),
+	('sunny', 'Sunny'),
+	('partly_cloudy', 'Partly cloudy'),
+	('cloudy', 'Cloudy'),
+	('rainy', 'Rainy'),
+	('stormy', 'Stormy'),
+	('snowy', 'Snowy'),
+	('windy', 'Windy'),
+	('foggy', 'Foggy'),
+]
+
+
 class Post(models.Model):
 	author = models.ForeignKey(
 		settings.AUTH_USER_MODEL,
@@ -19,6 +32,7 @@ class Post(models.Model):
 	createdAt = models.DateTimeField(default=timezone.now)
 	content = models.TextField()
 	link = models.URLField(max_length=2048, blank=True)
+	weather = models.CharField(max_length=20, choices=WEATHER_CHOICES, blank=True, default='')
 	isDraft = models.BooleanField(default=False)
 	reactionCounts = models.JSONField(default=dict, blank=True)
 	editedAt = models.DateTimeField(blank=True, null=True)

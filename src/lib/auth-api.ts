@@ -42,6 +42,7 @@ export type UserPost = {
   createdAt: string;
   content: string;
   link: string;
+  weather: string;
   isDraft: boolean;
   editedAt: string | null;
   media: Media[];
@@ -248,11 +249,13 @@ export function createPost(
   media: ImagePickerAsset[] = [],
   link = '',
   isDraft = false,
+  weather = '',
 ) {
   const body = new FormData();
   body.append('content', post.content);
   body.append('createdAt', post.createdAt);
   body.append('link', link);
+  body.append('weather', weather);
   body.append('isDraft', String(isDraft));
   media.forEach((asset) => {
     body.append('uploads', asset.file ?? new File(asset.uri));
@@ -285,12 +288,14 @@ export function updatePost(
   removedMedia: number[] = [],
   link?: string,
   isDraft?: boolean,
+  weather?: string,
 ) {
   const body = new FormData();
   body.append('content', content);
   body.append('createdAt', createdAt);
   if (link !== undefined) body.append('link', link);
   if (isDraft !== undefined) body.append('isDraft', String(isDraft));
+  if (weather !== undefined) body.append('weather', weather);
   media.forEach((asset) => body.append('uploads', asset.file ?? new File(asset.uri)));
   removedMedia.forEach((id) => body.append('removedMedia', String(id)));
   return apiFetch<UserPost>(`/api/posts/${postId}/`, {

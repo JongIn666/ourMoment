@@ -2,12 +2,12 @@ import { SafeAreaViewThemed } from "@/components/safe-area-themed";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useState } from "react";
 import {
-  ActivityIndicator,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
+    ActivityIndicator,
+    Pressable,
+    ScrollView,
+    StyleSheet,
+    Text,
+    View,
 } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
@@ -24,10 +24,11 @@ import { Timeline } from "@/components/timeline";
 import { TimelinePost } from "@/components/timeline-post";
 import { useAuth } from "@/context/auth";
 import * as authApi from "@/lib/auth-api";
+
 import {
-  emptyFilters,
-  filterPosts,
-  type PostFilters,
+    emptyFilters,
+    filterPosts,
+    type PostFilters,
 } from "@/lib/post-filters";
 
 export default function Group() {
@@ -186,6 +187,7 @@ export default function Group() {
                     excerpt={`${post.author.displayName || post.author.username}\n${post.content}`}
                     media={post.media}
                     link={post.link}
+                    weather={post.weather}
                     tags={[]}
                     emojiReacts={[]}
                     reactionEmojis={group?.reactionEmojis ?? []}
