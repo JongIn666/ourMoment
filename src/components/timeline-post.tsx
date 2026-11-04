@@ -7,6 +7,7 @@ import { PostMedia } from '@/components/post-media';
 import { ReactionMenu } from '@/components/reaction-menu';
 import { WhiteBox } from '@/components/white-box';
 import type { Media } from '@/lib/auth-api';
+import { getWeatherOption } from '@/lib/weather';
 import { EmojiCount } from './emoji';
 import { ReactButton } from './react-button';
 
@@ -23,13 +24,14 @@ export type TimelinePostProps = ViewProps & {
   onEditPress?: () => void,
   media?: Media[],
   link?: string,
+  weather?: string,
   reactionEmojis?: string[],
   reactionCounts?: Record<string, number>,
   myReactions?: string[],
   onReact?: (emoji: string) => Promise<void>,
 };
 
-export function TimelinePost({date, startOfDate, userIcon, excerpt, tags, emojiReacts, commentNum, isOwnPost = false, onDelete, onEditPress, media = [], link = '', reactionEmojis = [], reactionCounts = {}, myReactions = [], onReact} : TimelinePostProps) {
+export function TimelinePost({date, startOfDate, userIcon, excerpt, tags, emojiReacts, commentNum, isOwnPost = false, onDelete, onEditPress, media = [], link = '', weather = '', reactionEmojis = [], reactionCounts = {}, myReactions = [], onReact} : TimelinePostProps) {
     const [showMoreActions, setShowMoreActions] = useState(false);
     const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
@@ -141,6 +143,7 @@ export function TimelinePost({date, startOfDate, userIcon, excerpt, tags, emojiR
                     </Pressable>
                 )}
                 {media.length > 0 && <PostMedia compact media={media} />}
+                {!!weather && <Text accessibilityLabel="Post weather" style={styles.weather}>{getWeatherOption(weather).emoji}</Text>}
                 <View style={styles.postRowReact}>
                     {emojiReacts.map((emojiReact) =>
                         <ReactButton
@@ -375,6 +378,10 @@ const styles = StyleSheet.create({
     color: Colors.textLink,
     fontSize: 14,
     textDecorationLine: 'underline'
+  },
+  weather: {
+    alignSelf: 'flex-start',
+    fontSize: 20,
   },
   postRowReact: {
     flexDirection: 'row',

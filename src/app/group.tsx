@@ -142,6 +142,7 @@ export default function Group() {
                                     excerpt={`${post.author.displayName || post.author.username}\n${post.content}`}
                                     media={post.media}
                                     link={post.link}
+                                    weather={post.weather}
                                     tags={[]}
                                     emojiReacts={[]}
                                     reactionEmojis={group?.reactionEmojis ?? []}

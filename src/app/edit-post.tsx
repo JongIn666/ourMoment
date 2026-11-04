@@ -17,6 +17,7 @@ import { LoginButton } from '@/components/login-button';
 import { PostMedia } from '@/components/post-media';
 import { SafeAreaViewThemed } from '@/components/safe-area-themed';
 import { TextInputThemed } from '@/components/text-input-themed';
+import { WeatherMenu } from '@/components/weather-menu';
 import { Colors } from '@/constants/theme';
 import { useAuth } from '@/context/auth';
 import { usePostMedia } from '@/hooks/use-post-media';
@@ -36,6 +37,7 @@ export default function EditPost() {
   const [removedMedia, setRemovedMedia] = useState<number[]>([]);
   const [content, setContent] = useState(initialContent ?? '');
   const [link, setLink] = useState('');
+  const [weather, setWeather] = useState('');
   const [postDate, setPostDate] = useState(() => {
     const parsedDate = createdAt ? new Date(createdAt) : null;
     return parsedDate && !Number.isNaN(parsedDate.getTime()) ? parsedDate : new Date();
@@ -54,6 +56,7 @@ export default function EditPost() {
           setPost(currentPost);
           setContent(currentPost.content);
           setLink(currentPost.link);
+          setWeather(currentPost.weather ?? '');
           setPostDate(new Date(currentPost.createdAt));
           setMedia([]);
           setRemovedMedia([]);
@@ -95,7 +98,17 @@ export default function EditPost() {
     setIsSaving(true);
     try {
       const postLink = parsePostLink(trimmedLink);
-      await authApi.updatePost(token, post.id, trimmedContent, postDate.toISOString(), media, removedMedia, postLink);
+      await authApi.updatePost(
+        token,
+        post.id,
+        trimmedContent,
+        postDate.toISOString(),
+        media,
+        removedMedia,
+        postLink,
+        undefined,
+        weather,
+      );
       if (router.canGoBack()) {
         router.back();
       } else if (post.group) {
@@ -174,6 +187,11 @@ export default function EditPost() {
               value={link}
             />
 
+            <View style={styles.weatherSection}>
+              <Text style={styles.label}>Weather</Text>
+              <WeatherMenu value={weather} onChange={setWeather} disabled={!post || isSaving || isPicking} />
+            </View>
+
             <View style={styles.dateTimeSection}>
               <Text style={styles.label}>Post time</Text>
               <DateTimeFields value={postDate} onChange={setPostDate} />
@@ -242,6 +260,10 @@ const styles = StyleSheet.create({
   dateTimeSection: {
     gap: 10,
     marginTop: 6,
+  },
+  weatherSection: {
+    gap: 8,
+    zIndex: 10,
   },
   error: {
     color: '#9B2C2C',

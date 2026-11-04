@@ -17,6 +17,7 @@ import { LoginButton } from '@/components/login-button';
 import { PostMedia } from '@/components/post-media';
 import { SafeAreaViewThemed } from '@/components/safe-area-themed';
 import { TextInputThemed } from '@/components/text-input-themed';
+import { WeatherMenu } from '@/components/weather-menu';
 import { Colors } from '@/constants/theme';
 import { useAuth } from '@/context/auth';
 import { usePostMedia } from '@/hooks/use-post-media';
@@ -30,6 +31,7 @@ export default function CreatePost() {
   const [draftPost, setDraftPost] = useState<authApi.UserPost | null>(null);
   const [content, setContent] = useState('');
   const [link, setLink] = useState('');
+  const [weather, setWeather] = useState('');
   const { media, setMedia, isPicking, mediaError, handlePickMedia } = usePostMedia();
   const [removedMedia, setRemovedMedia] = useState<number[]>([]);
   const [postDate, setPostDate] = useState(new Date());
@@ -63,6 +65,7 @@ export default function CreatePost() {
         setDraftPost(post);
         setContent(post.content);
         setLink(post.link);
+        setWeather(post.weather ?? '');
         setPostDate(new Date(post.createdAt));
         setRemovedMedia([]);
         setMedia([]);
@@ -118,12 +121,13 @@ export default function CreatePost() {
           removedMedia,
           postLink,
           isDraft,
+          weather,
         );
       } else {
         await authApi.createPost(token, id, {
           content: trimmedContent,
           createdAt: postDate.toISOString(),
-        }, media, postLink, isDraft);
+        }, media, postLink, isDraft, weather);
       }
       router.dismissTo({ pathname: '/group', params: { groupId: String(id) } });
     } catch (caughtError) {
@@ -197,6 +201,11 @@ export default function CreatePost() {
               returnKeyType="done"
               value={link}
             />
+
+            <View style={styles.weatherSection}>
+              <Text style={styles.label}>Weather</Text>
+              <WeatherMenu value={weather} onChange={setWeather} disabled={isLoadingDraft || isSaving} />
+            </View>
 
             <View style={styles.dateTimeSection}>
               <Text style={styles.label}>Post time</Text>
@@ -274,6 +283,10 @@ const styles = StyleSheet.create({
   dateTimeSection: {
     gap: 10,
     marginTop: 6,
+  },
+  weatherSection: {
+    gap: 8,
+    zIndex: 10,
   },
   error: {
     color: '#9B2C2C',

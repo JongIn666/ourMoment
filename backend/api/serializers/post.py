@@ -70,7 +70,7 @@ class PostSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Post
-        fields = ['id', 'author', 'group', 'createdAt', 'content', 'link', 'isDraft', 'editedAt', 'media', 'uploads', 'removedMedia', 'reactionCounts', 'myReactions']
+        fields = ['id', 'author', 'group', 'createdAt', 'content', 'link', 'weather', 'isDraft', 'editedAt', 'media', 'uploads', 'removedMedia', 'reactionCounts', 'myReactions']
         read_only_fields = ['id', 'author', 'group', 'editedAt']
 
     def get_myReactions(self, post):

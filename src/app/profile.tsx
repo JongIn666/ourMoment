@@ -152,6 +152,7 @@ export default function Profile() {
                               excerpt={post.content}
                               media={post.media}
                               link={post.link}
+                              weather={post.weather}
                               reactionCounts={post.reactionCounts ?? {}}
                               tags={[]}
                               emojiReacts={[]}
