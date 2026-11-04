@@ -1,61 +1,77 @@
-import { Colors } from '@/constants/theme';
-import { Keyboard, Pressable, StyleSheet, Text, type PressableProps, type StyleProp, type TextStyle } from 'react-native';
+import { Colors } from "@/constants/theme";
+import {
+  Keyboard,
+  Pressable,
+  StyleSheet,
+  Text,
+  type PressableProps,
+  type StyleProp,
+  type TextStyle,
+} from "react-native";
 
 export type LoginButtonProps = PressableProps & {
-  text: string,
-  type?: 'primary' | 'secondary';
-  labelStyle?: StyleProp<TextStyle>
+  text: string;
+  type?: "primary" | "secondary";
+  labelStyle?: StyleProp<TextStyle>;
 };
 
-export function LoginButton({ text, type, style, labelStyle, onPress, ...rest }: LoginButtonProps) {
-    return (
-        <Pressable
-            style={(state) => [
-              styles.button,
-              type == "primary" ? styles.primaryButton: styles.secondaryButton,
-              typeof style === 'function' ? style(state) : style,
-            ]}
-            {...rest}
-            onPress={(event) => {
-              Keyboard.dismiss();
-              onPress?.(event);
-            }}
-        >
-            <Text
-                style={[
-                  styles.label,
-                  type == "primary" ? styles.primaryLabel: styles.secondaryLabel,
-                  labelStyle
-                ]}
-            >
-              { text }
-            </Text>
-        </Pressable>
-    )
+export function LoginButton({
+  text,
+  type,
+  style,
+  labelStyle,
+  onPress,
+  ...rest
+}: LoginButtonProps) {
+  return (
+    <Pressable
+      style={(state) => [
+        styles.button,
+        type == "primary" ? styles.primaryButton : styles.secondaryButton,
+        rest.disabled && { opacity: 0.5 },
+        typeof style === "function" ? style(state) : style,
+      ]}
+      {...rest}
+      onPress={(event) => {
+        Keyboard.dismiss();
+        onPress?.(event);
+      }}
+    >
+      <Text
+        style={[
+          styles.label,
+          type == "primary" ? styles.primaryLabel : styles.secondaryLabel,
+          labelStyle,
+        ]}
+      >
+        {text}
+      </Text>
+    </Pressable>
+  );
 }
 
 const styles = StyleSheet.create({
   button: {
     borderWidth: 2,
     width: 248,
-    height: 68
+    height: 68,
   },
   label: {
-    textAlign: 'center',
-    margin: 'auto',
-    fontSize: 28
+    textAlign: "center",
+    margin: "auto",
+    fontSize: 28,
   },
   primaryButton: {
     backgroundColor: Colors.button.primary.color,
-    borderColor: Colors.button.primary.border
+    borderColor: Colors.button.primary.border,
   },
   primaryLabel: {
-    color: Colors.button.primary.label
+    color: Colors.button.primary.label,
   },
   secondaryButton: {
-    borderColor: Colors.button.secondary.border
+    borderColor: Colors.button.secondary.border,
   },
   secondaryLabel: {
-    color: Colors.button.secondary.label
-  }
+    color: Colors.button.secondary.label,
+  },
 });

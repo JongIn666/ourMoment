@@ -1,159 +1,169 @@
-import { useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
-import { ActivityIndicator, KeyboardAvoidingView, Platform, StyleSheet } from 'react-native';
-import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { useRouter } from "expo-router";
+import { useEffect, useState } from "react";
+import {
+  ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
+  StyleSheet,
+} from "react-native";
+import { SafeAreaProvider } from "react-native-safe-area-context";
 
-import { useAuth } from '@/context/auth';
+import { useAuth } from "@/context/auth";
 
-import { BackButtonView } from '@/components/back-button-view';
-import { LoginButton } from '@/components/login-button';
-import { LoginError, LoginHeader, LoginPanel } from '@/components/other-login-ui';
-import { SafeAreaViewThemed } from '@/components/safe-area-themed';
-import { TextInputThemed } from '@/components/text-input-themed';
+import { BackButtonView } from "@/components/back-button-view";
+import { LoginButton } from "@/components/login-button";
+import {
+  LoginError,
+  LoginHeader,
+  LoginPanel,
+} from "@/components/other-login-ui";
+import { SafeAreaViewThemed } from "@/components/safe-area-themed";
+import { TextInputThemed } from "@/components/text-input-themed";
 
 export default function CreateAccount() {
-    const auth = useAuth();
-    const router = useRouter(); 
+  const auth = useAuth();
+  const router = useRouter();
 
-    const [username, setUsername] = useState('');
-    const [email, setEmail] = useState('');
-    const [password, setPassword] = useState('');
-    const [confirmPassword, setConfirmPassword] = useState('');
-    const [isSubmitting, setIsSubmitting] = useState(false);
-    const [error, setError] = useState<string | null>(null);
+  const [username, setUsername] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-    const trimmedUsername = username.trim();
-    const trimmedEmail = email.trim();
-    const passwordMismatch =
-        password.length > 0 && confirmPassword.length > 0 && password !== confirmPassword;
-    const isRegisterComplete =
-        trimmedUsername.length > 0 &&
-        trimmedEmail.length > 0 &&
-        password.length > 0 &&
-        confirmPassword.length > 0;
-    const canSubmit =
-        !isSubmitting &&
-        !passwordMismatch &&
-        isRegisterComplete;
-    const displayedError = error ?? (passwordMismatch ? 'Passwords do not match.' : null);
+  const trimmedUsername = username.trim();
+  const trimmedEmail = email.trim();
+  const passwordMismatch =
+    password.length > 0 &&
+    confirmPassword.length > 0 &&
+    password !== confirmPassword;
+  const isRegisterComplete =
+    trimmedUsername.length > 0 &&
+    trimmedEmail.length > 0 &&
+    password.length > 0 &&
+    confirmPassword.length > 0;
+  const displayedError =
+    error ?? (passwordMismatch ? "Passwords do not match." : null);
 
-    useEffect(() => {
-        if (!auth.isLoading && auth.user) {
-            router.replace('/home');
-        }
-    }, [auth.isLoading, auth.user, router]);
+  useEffect(() => {
+    if (!auth.isLoading && auth.user) {
+      router.replace("/home");
+    }
+  }, [auth.isLoading, auth.user, router]);
 
-    async function handleSubmit() {
-        setError(null);
+  async function handleSubmit() {
+    setError(null);
 
-        if (!canSubmit) {
-        setError('Fill out every field.');
-        return;
-        }
+    if (isSubmitting) return;
 
-        if (password !== confirmPassword) {
-        setError('Passwords do not match.');
-        return;
-        }
-
-        setIsSubmitting(true);
-
-        try {
-            await auth.signUp(
-                trimmedUsername,
-                trimmedEmail,
-                password,
-                confirmPassword,
-                "Sonic the Hedgehog" // lol
-            );
-            router.replace('/home');
-        } catch (caughtError) {
-            setError(caughtError instanceof Error ? caughtError.message : 'Unable to sign in.');
-        } finally {
-            setIsSubmitting(false);
-        }
+    if (!isRegisterComplete) {
+      setError("Fill out every field.");
+      return;
     }
 
-    if (auth.isLoading || auth.user) {
-        return (
-            <SafeAreaProvider>
-                <SafeAreaViewThemed>
-                    <ActivityIndicator />
-                </SafeAreaViewThemed>
-            </SafeAreaProvider>
-        );
+    if (password !== confirmPassword) {
+      setError("Passwords do not match.");
+      return;
     }
 
+    setIsSubmitting(true);
+
+    try {
+      await auth.signUp(
+        trimmedUsername,
+        trimmedEmail,
+        password,
+        confirmPassword,
+        "Sonic the Hedgehog", // lol
+      );
+      router.replace("/home");
+    } catch (caughtError) {
+      setError(
+        caughtError instanceof Error
+          ? caughtError.message
+          : "Unable to sign in.",
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
+  if (auth.isLoading || auth.user) {
     return (
-        <SafeAreaProvider>
-            <KeyboardAvoidingView
-                behavior={Platform.OS === 'ios' ? 'padding' : 'padding'}
-                style={styles.keyboardView}
-            >
-                <SafeAreaViewThemed style={ styles.container }>
-                    <BackButtonView/>
+      <SafeAreaProvider>
+        <SafeAreaViewThemed>
+          <ActivityIndicator />
+        </SafeAreaViewThemed>
+      </SafeAreaProvider>
+    );
+  }
 
-                    <LoginHeader text="Let's start creating your moments!"/>
+  return (
+    <SafeAreaProvider>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : "padding"}
+        style={styles.keyboardView}
+      >
+        <SafeAreaViewThemed style={styles.container}>
+          <BackButtonView />
 
-                    <LoginPanel>
-                        <TextInputThemed
-                            autoCapitalize="none"
-                            autoComplete="email"
-                            autoCorrect={false}
-                            keyboardType="email-address"
-                            onChangeText={setEmail}
-                            placeholder="Email address"
-                            value={email}
-                        />
-                        <TextInputThemed
-                            autoCapitalize="none"
-                            autoCorrect={false}
-                            onChangeText={setUsername}
-                            placeholder="Username"
-                            value={username}
-                        />
-                        <TextInputThemed
-                            autoCapitalize="none"
-                            autoComplete="password"
-                            onChangeText={setPassword}
-                            placeholder="Password"
-                            secureTextEntry={true}
-                            value={password}
-                        />
-                        <TextInputThemed
-                            autoCapitalize="none"
-                            autoComplete="password"
-                            onChangeText={setConfirmPassword}
-                            placeholder="Re-enter password"
-                            secureTextEntry={true}
-                            value={confirmPassword}
-                        />
+          <LoginHeader text="Let's start creating your moments!" />
 
-                        {displayedError && (
-                            <LoginError>
-                                {displayedError}
-                            </LoginError>
-                        )}
-                    </LoginPanel>
+          <LoginPanel>
+            <TextInputThemed
+              autoCapitalize="none"
+              autoComplete="email"
+              autoCorrect={false}
+              keyboardType="email-address"
+              onChangeText={setEmail}
+              placeholder="Email address"
+              value={email}
+            />
+            <TextInputThemed
+              autoCapitalize="none"
+              autoCorrect={false}
+              onChangeText={setUsername}
+              placeholder="Username"
+              value={username}
+            />
+            <TextInputThemed
+              autoCapitalize="none"
+              autoComplete="password"
+              onChangeText={setPassword}
+              placeholder="Password"
+              secureTextEntry={true}
+              value={password}
+            />
+            <TextInputThemed
+              autoCapitalize="none"
+              autoComplete="password"
+              onChangeText={setConfirmPassword}
+              placeholder="Re-enter password"
+              secureTextEntry={true}
+              value={confirmPassword}
+            />
 
-                    <LoginButton
-                        text="Create account"
-                        type="primary"
-                        disabled={!canSubmit}
-                        onPress={handleSubmit}
-                    />
-                </SafeAreaViewThemed>
-            </KeyboardAvoidingView>
-        </SafeAreaProvider>
-    )
+            {displayedError && <LoginError>{displayedError}</LoginError>}
+          </LoginPanel>
+
+          <LoginButton
+            text={isSubmitting ? "Creating..." : "Create account"}
+            type="primary"
+            disabled={isSubmitting}
+            onPress={handleSubmit}
+          />
+        </SafeAreaViewThemed>
+      </KeyboardAvoidingView>
+    </SafeAreaProvider>
+  );
 }
 
 const styles = StyleSheet.create({
-    container: {
-       gap: 24 
-    },
-    keyboardView: {
-        flex: 1,
-        alignItems: 'center',
-    }
+  container: {
+    gap: 24,
+  },
+  keyboardView: {
+    flex: 1,
+    alignItems: "center",
+  },
 });
