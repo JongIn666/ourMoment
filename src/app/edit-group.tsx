@@ -6,12 +6,14 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { Colors } from '@/constants/theme';
 
 import { BackButtonView } from '@/components/back-button-view';
+import { ConfirmModal } from '@/components/confirm-modal';
 import { DangerButton, LoginButton } from '@/components/login-button';
 import { TextInputThemed } from '@/components/text-input-themed';
 import { WhiteBox } from '@/components/white-box';
 
 export default function EditGroup() {
     const [groupName, setGroupName] = useState('Dog');
+    const [isDeletingGroup, setIsDeletingGroup] = useState(false);
 
     return (
         <SafeAreaProvider>
@@ -39,6 +41,14 @@ export default function EditGroup() {
 
                 <DangerButton
                     text="Delete group"
+                    onPress={() => setIsDeletingGroup(true)}
+                />
+
+                <ConfirmModal
+                  visibleBoolean={isDeletingGroup}
+                  closeFunction={() => setIsDeletingGroup(false)}
+                  label="Are you sure you want to delete this group?"
+                  danger
                 />
             </SafeAreaViewThemed>
         </SafeAreaProvider>

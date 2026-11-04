@@ -33,6 +33,7 @@ export const Colors = {
             label: colorPalette.white
         },
         secondary: {
+            color: colorPalette.lightLime,
             border: colorPalette.midLime,
             label: colorPalette.midLime
         },

@@ -76,6 +76,7 @@ const styles = StyleSheet.create({
     color: Colors.button.primary.label
   },
   secondaryButton: {
+    backgroundColor: Colors.button.secondary.color,
     borderColor: Colors.button.secondary.border
   },
   secondaryLabel: {
