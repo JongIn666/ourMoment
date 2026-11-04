@@ -1,6 +1,7 @@
 import os
 from pathlib import Path
 from corsheaders.defaults import default_headers
+from django.core.exceptions import ImproperlyConfigured
 
 from dotenv import load_dotenv
 
@@ -14,10 +15,17 @@ load_dotenv(BASE_DIR / '.env')
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-(f4=uu%^!bedh!tdr=dte!wdz*&1dnl%rwgn(0_ll6cba31y87'
+DEBUG = os.environ.get('DJANGO_DEBUG', 'true').lower() in {'1', 'true', 'yes'}
+SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY') or (
+    'django-insecure-(f4=uu%^!bedh!tdr=dte!wdz*&1dnl%rwgn(0_ll6cba31y87' if DEBUG else ''
+)
+if not SECRET_KEY:
+    raise ImproperlyConfigured('DJANGO_SECRET_KEY is required when DJANGO_DEBUG is false.')
 
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+SECURE_SSL_REDIRECT = not DEBUG
+SESSION_COOKIE_SECURE = not DEBUG
+CSRF_COOKIE_SECURE = not DEBUG
 
 EMAIL_BACKEND = os.environ.get(
     'EMAIL_BACKEND',
@@ -67,6 +75,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'corsheaders.middleware.CorsMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -152,6 +161,7 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
 STATIC_URL = 'static/'
+STATIC_ROOT = BASE_DIR / 'staticfiles'
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 

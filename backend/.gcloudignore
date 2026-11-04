@@ -1,0 +1,9 @@
+.gcloudignore
+.env*
+.venv/
+**/__pycache__/
+**/*.pyc
+cloudrun.env.yaml
+db.sqlite3
+media/
+staticfiles/

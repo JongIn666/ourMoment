@@ -36,6 +36,8 @@ yarn-error.*
 # Django
 backend/.venv/
 backend/.env
+backend/cloudrun.env.yaml
+backend/staticfiles/
 backend/db.sqlite3
 backend/**/__pycache__/
 backend/**/*.pyc
