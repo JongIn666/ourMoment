@@ -30,6 +30,7 @@ import { PostFilterMenu } from "@/components/post-filter-menu";
 import {
     emptyFilters,
     filterPosts,
+    hasActiveFilters,
     type PostFilters,
 } from "@/lib/post-filters";
 
@@ -113,7 +114,11 @@ export default function Group() {
               <FontAwesomeIcon
                 icon={faFilter}
                 size={32}
-                color={Colors.icon.darkLime}
+                color={
+                  hasActiveFilters(filters)
+                    ? Colors.button.primary.color
+                    : Colors.icon.darkLime
+                }
               />
             </Pressable>
 
@@ -285,7 +290,8 @@ export default function Group() {
             closeFunction={() => setCreatingPost(false)}
             groupId={group.id}
             onCreated={(createdPost, isDraft) => {
-              if (!isDraft) setPosts((currentPosts) => [createdPost, ...currentPosts]);
+              if (!isDraft)
+                setPosts((currentPosts) => [createdPost, ...currentPosts]);
             }}
           />
         )}

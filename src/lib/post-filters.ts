@@ -26,6 +26,15 @@ export function filterPosts(posts: UserPost[], filters: PostFilters) {
   });
 }
 
+export function hasActiveFilters(filters: PostFilters) {
+  return (
+    filters.from !== null ||
+    filters.to !== null ||
+    filters.authorId !== null ||
+    filters.mediaOnly
+  );
+}
+
 function startOfDay(date: Date) {
   const d = new Date(date);
   d.setHours(0, 0, 0, 0);
