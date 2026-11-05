@@ -1,4 +1,4 @@
-import { Colors } from "@/constants/theme";
+import { Colors } from '@/constants/theme';
 import {
   Keyboard,
   Pressable,
@@ -7,29 +7,24 @@ import {
   type PressableProps,
   type StyleProp,
   type TextStyle,
-} from "react-native";
+} from 'react-native';
 
-export type LoginButtonProps = PressableProps & {
+export type ButtonProps = PressableProps & {
   text: string;
-  type?: "primary" | "secondary";
+  type?: 'primary' | 'secondary';
   labelStyle?: StyleProp<TextStyle>;
 };
 
-export function LoginButton({
-  text,
-  type,
-  style,
-  labelStyle,
-  onPress,
-  ...rest
-}: LoginButtonProps) {
+export type LoginButtonProps = ButtonProps;
+
+export function LoginButton({ text, type, style, labelStyle, onPress, ...rest }: LoginButtonProps) {
   return (
     <Pressable
       style={(state) => [
         styles.button,
-        type == "primary" ? styles.primaryButton : styles.secondaryButton,
-        rest.disabled && { opacity: 0.5 },
-        typeof style === "function" ? style(state) : style,
+        type === 'primary' ? styles.primaryButton : styles.secondaryButton,
+        rest.disabled && styles.disabled,
+        typeof style === 'function' ? style(state) : style,
       ]}
       {...rest}
       onPress={(event) => {
@@ -37,15 +32,29 @@ export function LoginButton({
         onPress?.(event);
       }}
     >
-      <Text
-        style={[
-          styles.label,
-          type == "primary" ? styles.primaryLabel : styles.secondaryLabel,
-          labelStyle,
-        ]}
-      >
+      <Text style={[styles.label, type === 'primary' ? styles.primaryLabel : styles.secondaryLabel, labelStyle]}>
         {text}
       </Text>
+    </Pressable>
+  );
+}
+
+export function DangerButton({ text, style, labelStyle, onPress, ...rest }: ButtonProps) {
+  return (
+    <Pressable
+      style={(state) => [
+        styles.button,
+        styles.dangerButton,
+        rest.disabled && styles.disabled,
+        typeof style === 'function' ? style(state) : style,
+      ]}
+      {...rest}
+      onPress={(event) => {
+        Keyboard.dismiss();
+        onPress?.(event);
+      }}
+    >
+      <Text style={[styles.label, styles.dangerLabel, labelStyle]}>{text}</Text>
     </Pressable>
   );
 }
@@ -57,8 +66,8 @@ const styles = StyleSheet.create({
     height: 68,
   },
   label: {
-    textAlign: "center",
-    margin: "auto",
+    textAlign: 'center',
+    margin: 'auto',
     fontSize: 28,
   },
   primaryButton: {
@@ -69,9 +78,20 @@ const styles = StyleSheet.create({
     color: Colors.button.primary.label,
   },
   secondaryButton: {
+    backgroundColor: Colors.button.secondary.color,
     borderColor: Colors.button.secondary.border,
   },
   secondaryLabel: {
     color: Colors.button.secondary.label,
+  },
+  dangerButton: {
+    backgroundColor: Colors.button.danger.color,
+    borderColor: Colors.button.danger.border,
+  },
+  dangerLabel: {
+    color: Colors.button.danger.label,
+  },
+  disabled: {
+    opacity: 0.5,
   },
 });
