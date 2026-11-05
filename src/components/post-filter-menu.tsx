@@ -15,7 +15,7 @@ import { WEATHER_OPTIONS } from "@/lib/weather";
 type PostFilterMenuProps = {
   visible: boolean;
   filters: PostFilters;
-  members: GroupMember[];
+  members?: GroupMember[];
   onChange: (filters: PostFilters) => void;
   onClose: () => void;
 };
@@ -84,42 +84,44 @@ export function PostFilterMenu({
         <View style={styles.dialog}>
           <Text style={styles.title}>Filter Posts</Text>
 
-          <View style={styles.section}>
-            <Text style={styles.label}>Posted by</Text>
-            <View style={styles.memberList}>
-              {members.map((member) => {
-                const isSelected = filters.authorId === member.id;
-                return (
-                  <Pressable
-                    key={member.id}
-                    accessibilityRole="button"
-                    accessibilityState={{ selected: isSelected }}
-                    onPress={() =>
-                      onChange({
-                        ...filters,
-                        authorId: isSelected ? null : member.id,
-                      })
-                    }
-                    style={[
-                      styles.memberButton,
-                      isSelected && styles.memberButtonSelected,
-                    ]}
-                  >
-                    <Text
+          {members && members.length > 0 && (
+            <View style={styles.section}>
+              <Text style={styles.label}>Posted by</Text>
+              <View style={styles.memberList}>
+                {members.map((member) => {
+                  const isSelected = filters.authorId === member.id;
+                  return (
+                    <Pressable
+                      key={member.id}
+                      accessibilityRole="button"
+                      accessibilityState={{ selected: isSelected }}
+                      onPress={() =>
+                        onChange({
+                          ...filters,
+                          authorId: isSelected ? null : member.id,
+                        })
+                      }
                       style={[
-                        styles.memberButtonText,
-                        isSelected && styles.memberButtonTextSelected,
+                        styles.memberButton,
+                        isSelected && styles.memberButtonSelected,
                       ]}
                     >
-                      {member.profile.displayName
-                        ? `${member.profile.displayName} (@${member.username})`
-                        : member.username}
-                    </Text>
-                  </Pressable>
-                );
-              })}
+                      <Text
+                        style={[
+                          styles.memberButtonText,
+                          isSelected && styles.memberButtonTextSelected,
+                        ]}
+                      >
+                        {member.profile.displayName
+                          ? `${member.profile.displayName} (@${member.username})`
+                          : member.username}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
             </View>
-          </View>
+          )}
 
           <View style={styles.section}>
             <Text style={styles.label}>Date range</Text>
