@@ -2,6 +2,7 @@ from .auth import LoginSerializer, RegisterSerializer, UserSerializer
 from .profile import ProfileSerializer
 from .group import GroupSerializer
 from .post import PostSerializer
+from .tag import TagSerializer
 
 __all__ = [
     'LoginSerializer',
@@ -10,4 +11,5 @@ __all__ = [
     'UserSerializer',
     'GroupSerializer',
     'PostSerializer',
+    'TagSerializer',
 ]

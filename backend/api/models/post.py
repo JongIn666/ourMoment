@@ -36,6 +36,7 @@ class Post(models.Model):
 	isDraft = models.BooleanField(default=False)
 	reactionCounts = models.JSONField(default=dict, blank=True)
 	editedAt = models.DateTimeField(blank=True, null=True)
+	tags = models.ManyToManyField('api.Tag', through='api.PostTag', related_name='posts', blank=True)
 
 	class Meta:
 		db_table = 'post'

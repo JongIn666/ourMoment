@@ -24,6 +24,8 @@ from .views import (
     register,
     reset_password,
     reset_password_check,
+    group_tags,
+    tag_detail,
 )
 
 urlpatterns = [
@@ -50,4 +52,6 @@ urlpatterns = [
     path('posts/<int:post_id>/', post_detail, name='post-detail'),
     path('posts/<int:post_id>/reactions/', post_reaction, name='post-reaction'),
     path('media/<int:media_id>/', media_detail, name='media-detail'),
+    path('groups/<int:group_id>/tags/', group_tags, name='group-tags'),
+    path('tags/<int:tag_id>/', tag_detail, name='tag-detail'),
 ]

@@ -12,6 +12,9 @@ from ..models.reaction import Reaction
 from ..storage import delete_media_file, save_media_file
 from .media import MediaSerializer
 
+from ..models.tag import PostTag, Tag
+from .tag import TagSerializer
+
 User = get_user_model()
 
 MEDIA_MAX_BYTES = 8 * 1024 * 1024
@@ -67,10 +70,12 @@ class PostSerializer(serializers.ModelSerializer):
     removedMedia = serializers.ListField(
         child=serializers.IntegerField(min_value=1), required=False, write_only=True,
     )
+    tags = serializers.SerializerMethodField()
+    tagIds = serializers.JSONField(required=False, write_only=True)
 
     class Meta:
         model = Post
-        fields = ['id', 'author', 'group', 'createdAt', 'content', 'link', 'weather', 'isDraft', 'editedAt', 'media', 'uploads', 'removedMedia', 'reactionCounts', 'myReactions']
+        fields = ['id', 'author', 'group', 'createdAt', 'content', 'link', 'weather', 'isDraft', 'editedAt', 'media', 'uploads', 'removedMedia', 'reactionCounts', 'myReactions', 'tags', 'tagIds']
         read_only_fields = ['id', 'author', 'group', 'editedAt']
 
     def get_myReactions(self, post):
@@ -82,6 +87,14 @@ class PostSerializer(serializers.ModelSerializer):
         if prefetched is not None:
             return [reaction.emoji for reaction in prefetched]
         return list(post.reactions.filter(user=request.user).values_list('emoji', flat=True))
+
+    def get_tags(self, post):
+        return TagSerializer([link.tag for link in post.post_tags.all()], many=True).data
+
+    def validate_tagIds(self, tag_ids):
+        if not isinstance(tag_ids, list) or not all(isinstance(i, int) and i > 0 for i in tag_ids):
+            raise serializers.ValidationError('Send a list of tag ids.')
+        return list(dict.fromkeys(tag_ids))
 
     def validate_uploads(self, uploads):
         for upload in uploads:
@@ -103,6 +116,12 @@ class PostSerializer(serializers.ModelSerializer):
         has_media = self.instance is not None and self.instance.media.exclude(pk__in=removed).exists()
         if not is_draft and not content and not link and not attrs.get('uploads') and not has_media:
             raise serializers.ValidationError({'content': 'Write a moment or add media or a link.'})
+
+        tag_ids = attrs.get('tagIds')
+        if tag_ids:
+            group = self.instance.group if self.instance else self.context.get('group')
+            if group is None or Tag.objects.filter(group=group, pk__in=tag_ids).count() != len(tag_ids):
+                raise serializers.ValidationError({'tagIds': 'Choose tags from this group.'})
         return attrs
 
     def create(self, validated_data):
@@ -114,10 +133,17 @@ class PostSerializer(serializers.ModelSerializer):
     def save_post(self, validated_data, instance=None):
         uploads = validated_data.pop('uploads', [])
         removed = validated_data.pop('removedMedia', [])
+        tag_ids = validated_data.pop('tagIds', None)
         saved_files = []
         try:
             with transaction.atomic():
                 post = super().create(validated_data) if instance is None else super().update(instance, validated_data)
+                if tag_ids is not None:
+                    PostTag.objects.filter(post=post).exclude(tag_id__in=tag_ids).delete()
+                    existing = set(PostTag.objects.filter(post=post).values_list('tag_id', flat=True))
+                    for tag_id in tag_ids:
+                        if tag_id not in existing:
+                            PostTag.objects.create(post=post, tag_id=tag_id)
                 for upload in uploads:
                     extension = MEDIA_TYPES[upload.content_type]
                     key = f'post-media/{post.author_id}/{uuid.uuid4().hex}.{extension}'

@@ -12,7 +12,7 @@ from ..models.group import Group, GroupMember, default_reaction_emojis
 from ..models.post import Post
 from ..models.reaction import Reaction
 from ..serializers.post import PostReactionReadSerializer, PostReactionSerializer, PostSerializer
-
+from ..models.tag import PostTag
 
 def current_user_reactions(user):
     return Prefetch(
@@ -21,6 +21,8 @@ def current_user_reactions(user):
         to_attr='current_user_reactions',
     )
 
+def post_tags_prefetch():
+    return Prefetch('post_tags', queryset=PostTag.objects.select_related('tag'))
 
 def posts_visible_to_user(user):
     group_membership = GroupMember.objects.filter(group_id=OuterRef('group_id'), user=user)
@@ -38,7 +40,7 @@ def my_posts(request):
     posts = (
         Post.objects.filter(author=request.user)
         .select_related('author', 'author__profile', 'group')
-        .prefetch_related('media', current_user_reactions(request.user))
+        .prefetch_related('media', current_user_reactions(request.user), post_tags_prefetch())
         .order_by('-createdAt')
     )
     return Response(PostSerializer(posts, many=True, context={'request': request}).data)
@@ -70,7 +72,7 @@ def group_posts(request, group_id):
     )
 
     if request.method == 'POST':
-        serializer = PostSerializer(data=request.data, context={'request': request})
+        serializer = PostSerializer(data=request.data, context={'request': request, 'group': group})
         serializer.is_valid(raise_exception=True)
         post = serializer.save(author=request.user, group=group)
         return Response(PostSerializer(post, context={'request': request}).data, status=status.HTTP_201_CREATED)
@@ -104,7 +106,7 @@ def post_detail(request, post_id):
 
     if request.method == 'PATCH':
         provided_fields = set(request.data.keys())
-        if not provided_fields or not provided_fields <= {'content', 'createdAt', 'link', 'weather', 'isDraft', 'uploads', 'removedMedia'}:
+        if not provided_fields or not provided_fields <= {'content', 'createdAt', 'link', 'weather', 'isDraft', 'uploads', 'removedMedia', 'tagIds'}:
             raise ValidationError({'content': 'Provide post content, timestamp, media, a link, weather, or draft status to edit.'})
         serializer = PostSerializer(post, data=request.data, partial=True, context={'request': request})
         serializer.is_valid(raise_exception=True)
