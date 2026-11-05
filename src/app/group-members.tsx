@@ -1,5 +1,4 @@
-import { useLocalSearchParams } from 'expo-router';
-import { useFocusEffect } from 'expo-router';
+import { useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { ActivityIndicator, Image, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -55,10 +54,6 @@ export default function GroupMembers() {
     <SafeAreaProvider>
       <SafeAreaViewThemed style={styles.screen}>
         <BackButtonView />
-        <View style={styles.heading}>
-          <Text style={styles.eyebrow}>GROUP MEMBERS</Text>
-          <Text style={styles.title}>{group?.name ?? 'Members'}</Text>
-        </View>
 
         {!isLoading && !error && group && (
           <WhiteBox style={styles.inviteBox}>
@@ -190,9 +185,7 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   displayName: {
-    color: Colors.heading,
-    fontSize: 18,
-    fontWeight: '600',
+    fontSize: 20,
   },
   username: {
     color: Colors.interface.text,

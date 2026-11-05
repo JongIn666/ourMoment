@@ -19,6 +19,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-native-fontawesome";
 
 import { AddButton } from "@/components/add-button";
 import { BackButtonView } from "@/components/back-button-view";
+import { CreatePostModal } from "@/components/create-post-modal";
 import { HomeEntry } from "@/components/home-entry";
 import { Timeline } from "@/components/timeline";
 import { TimelinePost } from "@/components/timeline-post";
@@ -42,6 +43,7 @@ export default function Group() {
   const [error, setError] = useState<string | null>(null);
   const [filters, setFilters] = useState<PostFilters>(emptyFilters);
   const [isFilterMenuOpen, setIsFilterMenuOpen] = useState(false);
+  const [creatingPost, setCreatingPost] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
@@ -265,12 +267,7 @@ export default function Group() {
             </Pressable>
             <AddButton
               accessibilityLabel="Create post"
-              onPress={() =>
-                router.push({
-                  pathname: "/create-post",
-                  params: { groupId: String(group.id) },
-                })
-              }
+              onPress={() => setCreatingPost(true)}
               style={styles.addPostButton}
             />
           </>
@@ -282,6 +279,16 @@ export default function Group() {
           onChange={setFilters}
           onClose={() => setIsFilterMenuOpen(false)}
         />
+        {group && (
+          <CreatePostModal
+            visibleBoolean={creatingPost}
+            closeFunction={() => setCreatingPost(false)}
+            groupId={group.id}
+            onCreated={(createdPost, isDraft) => {
+              if (!isDraft) setPosts((currentPosts) => [createdPost, ...currentPosts]);
+            }}
+          />
+        )}
       </SafeAreaViewThemed>
     </SafeAreaProvider>
   );

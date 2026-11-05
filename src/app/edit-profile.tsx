@@ -2,6 +2,7 @@ import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import {
     ActivityIndicator,
+    Image,
     KeyboardAvoidingView,
     Modal,
     Platform,
@@ -18,6 +19,7 @@ import { BackButtonView } from '@/components/back-button-view';
 import { LoginButton } from '@/components/login-button';
 import { SafeAreaViewThemed } from '@/components/safe-area-themed';
 import { TextInputThemed } from '@/components/text-input-themed';
+import { WhiteBox } from '@/components/white-box';
 import { Colors } from '@/constants/theme';
 import { useAuth } from '@/context/auth';
 import * as authApi from '@/lib/auth-api';
@@ -142,49 +144,37 @@ export default function EditProfile() {
               style={styles.formArea}
             >
               <ScrollView contentContainerStyle={styles.form} keyboardShouldPersistTaps="handled">
-                <Field label="Display name">
+                <WhiteBox style={styles.userHeader}>
+                  <Image
+                    source={profile?.profilePicUrl
+                      ? { uri: profile.profilePicUrl }
+                      : require('@/assets/images/placeholder/jet-the-hmmmawk.png')}
+                    style={styles.userIcon}
+                  />
+                  <View style={styles.userNames}>
                   <TextInputThemed
+                    accessibilityLabel="Display name"
                     autoCapitalize="words"
                     onChangeText={(value) => updateProfileField('displayName', value)}
                     placeholder="How should people see you?"
+                    style={styles.displayNameInput}
                     value={profile?.displayName ?? ''}
                   />
-                </Field>
-
-                <Field label="Username" hint="Letters and numbers only">
                   <TextInputThemed
+                    accessibilityLabel="Username (letters and numbers only)"
                     autoCapitalize="none"
                     autoCorrect={false}
                     onChangeText={(value) => updateProfileField('username', value)}
                     placeholder="Your username"
+                    style={styles.usernameInput}
                     value={profile?.username ?? ''}
                   />
-                </Field>
+                  </View>
+                </WhiteBox>
 
-                <Field label="Email address">
+                <WhiteBox style={styles.bioBox}>
                   <TextInputThemed
-                    autoCapitalize="none"
-                    autoComplete="email"
-                    autoCorrect={false}
-                    keyboardType="email-address"
-                    onChangeText={setEmail}
-                    placeholder="you@example.com"
-                    value={email}
-                  />
-                </Field>
-
-                <Field label="Birthday" hint="Use YYYY-MM-DD">
-                  <TextInputThemed
-                    autoCapitalize="none"
-                    keyboardType="numbers-and-punctuation"
-                    onChangeText={(value) => updateProfileField('birthday', value || null)}
-                    placeholder="YYYY-MM-DD"
-                    value={profile?.birthday ?? ''}
-                  />
-                </Field>
-
-                <Field label="Bio">
-                  <TextInputThemed
+                    accessibilityLabel="Bio"
                     multiline
                     onChangeText={(value) => updateProfileField('bio', value)}
                     maxLength={200}
@@ -194,10 +184,19 @@ export default function EditProfile() {
                     value={profile?.bio ?? ''}
                   />
                   <Text style={styles.characterCount}>{profile?.bio.length ?? 0}/200</Text>
-                </Field>
+                </WhiteBox>
 
-                <View style={styles.preferences}>
-                  <Text style={styles.sectionTitle}>Birthday privacy</Text>
+                <View style={styles.section}>
+                  <Text style={styles.sectionTitle}>Birthday and age</Text>
+                  <Field label="Birthday" hint="Use YYYY-MM-DD">
+                    <TextInputThemed
+                      autoCapitalize="none"
+                      keyboardType="numbers-and-punctuation"
+                      onChangeText={(value) => updateProfileField('birthday', value || null)}
+                      placeholder="YYYY-MM-DD"
+                      value={profile?.birthday ?? ''}
+                    />
+                  </Field>
                   <PreferenceRow
                     label="Show my age"
                     value={profile?.showAge ?? false}
@@ -208,6 +207,21 @@ export default function EditProfile() {
                     value={profile?.showBirthday ?? false}
                     onValueChange={(value) => updateProfileField('showBirthday', value)}
                   />
+                </View>
+
+                <View style={styles.section}>
+                  <Text style={styles.sectionTitle}>Email</Text>
+                  <WhiteBox style={styles.emailBox}>
+                    <TextInputThemed
+                      autoCapitalize="none"
+                      autoComplete="email"
+                      autoCorrect={false}
+                      keyboardType="email-address"
+                      onChangeText={setEmail}
+                      placeholder="you@example.com"
+                      value={email}
+                    />
+                  </WhiteBox>
                 </View>
 
               </ScrollView>
@@ -309,6 +323,49 @@ const styles = StyleSheet.create({
   form: {
     gap: 16,
     paddingBottom: 18,
+  },
+  userHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    width: '100%',
+    maxWidth: 420,
+    alignSelf: 'center',
+    padding: 11,
+    gap: 10,
+  },
+  userIcon: {
+    width: 70,
+    height: 70,
+    borderWidth: 2,
+    borderColor: Colors.box.border,
+  },
+  userNames: {
+    flex: 1,
+    gap: 3,
+  },
+  displayNameInput: {
+    height: 34,
+    fontSize: 18,
+    padding: 3,
+  },
+  usernameInput: {
+    height: 28,
+    color: Colors.interface.text,
+    fontSize: 14,
+    padding: 2,
+  },
+  bioBox: {
+    width: '100%',
+    maxWidth: 420,
+    alignSelf: 'center',
+    padding: 11,
+    gap: 6,
+  },
+  emailBox: {
+    padding: 8,
+  },
+  section: {
+    gap: 8,
   },
   field: {
     gap: 6,

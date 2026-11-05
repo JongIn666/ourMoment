@@ -1,17 +1,17 @@
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
+import { faGear } from '@fortawesome/free-solid-svg-icons/faGear';
+import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
 
 import { SafeAreaViewThemed } from '@/components/safe-area-themed';
 import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
-import { faGear } from '@fortawesome/free-solid-svg-icons/faGear';
-import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
-
 import { AddButton } from '@/components/add-button';
 import { HomeEntry } from '@/components/home-entry';
 import { Colors } from '@/constants/theme';
 
+import { CreateGroupModal } from '@/components/create-group-modal';
 import { useAuth } from '@/context/auth';
 import * as authApi from '@/lib/auth-api';
 
@@ -22,6 +22,8 @@ export default function Home() {
     const [profile, setProfile] = useState<authApi.Profile | null>(auth.user?.profile ?? null);
     const [isLoadingGroups, setIsLoadingGroups] = useState(false);
     const [groupsError, setGroupsError] = useState<string | null>(null);
+
+    const [creatingGroup, setCreatingGroup] = useState(false);
 
     const loadHome = useCallback(() => {
         if (!auth.token) return () => {};
@@ -77,8 +79,9 @@ export default function Home() {
                             source={require('@/assets/images/logo-wordmark.png')}
                             style={{width: 317, height: 74}}
                         />
-
                         <Pressable
+                            accessibilityRole="button"
+                            accessibilityLabel="Open settings"
                             style={styles.settingButton}
                             onPress={() => router.navigate('/settings')}
                         >
@@ -119,7 +122,7 @@ export default function Home() {
 
                         <AddButton
                             accessibilityLabel="Create a group"
-                            onPress={() => router.push('/create-group')}
+                            onPress={() => setCreatingGroup(true)}
                             style={styles.addGroupButton}
                         />
                     </View>
@@ -132,6 +135,8 @@ export default function Home() {
 
                         onPress={() => router.navigate('/profile')}
                     />
+
+                    <CreateGroupModal visibleBoolean={creatingGroup} closeFunction={() => setCreatingGroup(false)}/>
                 </SafeAreaViewThemed>
             </SafeAreaProvider>
         )
@@ -180,7 +185,7 @@ const styles = StyleSheet.create({
         paddingVertical: 20,
     },
     stateText: {
-        color: Colors.interface.text,
+        color: Colors.error,
         fontSize: 16,
         textAlign: 'center',
     },
