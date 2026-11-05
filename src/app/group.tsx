@@ -3,6 +3,7 @@ import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -21,10 +22,12 @@ import { AddButton } from "@/components/add-button";
 import { BackButtonView } from "@/components/back-button-view";
 import { CreatePostModal } from "@/components/create-post-modal";
 import { HomeEntry } from "@/components/home-entry";
+import { MonthlyMedia } from "@/components/monthly-media";
 import { Timeline } from "@/components/timeline";
 import { TimelinePost } from "@/components/timeline-post";
 import { useAuth } from "@/context/auth";
 import * as authApi from "@/lib/auth-api";
+import { getStoredGroupView, setStoredGroupView } from "@/lib/group-view-storage";
 
 import { PostFilterMenu } from "@/components/post-filter-menu";
 import {
@@ -53,12 +56,15 @@ export default function Group() {
   const [tags, setTags] = useState<authApi.Tag[]>([]);
   const [isNewTagOpen, setIsNewTagOpen] = useState(false);
   const [isTagColorsOpen, setIsTagColorsOpen] = useState(false);
+  const [isCalendarView, setIsCalendarView] = useState(false);
+  const [isSavingView, setIsSavingView] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
       let isActive = true;
       const id = Number(groupId);
-      if (!token || !Number.isInteger(id) || id <= 0) {
+      const userId = user?.id;
+      if (!token || !userId || !Number.isInteger(id) || id <= 0) {
         setError("This group could not be found.");
         setIsLoading(false);
         return () => {
@@ -72,12 +78,14 @@ export default function Group() {
         authApi.getGroup(token, id),
         authApi.getGroupPosts(token, id),
         authApi.getGroupTags(token, id),
+        getStoredGroupView(userId, id).catch(() => "timeline"),
       ])
-        .then(([currentGroup, currentPosts, currentTags]) => {
+        .then(([currentGroup, currentPosts, currentTags, storedView]) => {
           if (isActive) {
             setGroup(currentGroup);
             setPosts(currentPosts);
             setTags(currentTags);
+            setIsCalendarView(storedView === "calendar");
           }
         })
         .catch((caughtError: unknown) => {
@@ -96,7 +104,7 @@ export default function Group() {
       return () => {
         isActive = false;
       };
-    }, [groupId, token]),
+    }, [groupId, token, user?.id]),
   );
 
   const visiblePosts = filterPosts(posts, filters);
@@ -130,11 +138,30 @@ export default function Group() {
                 color={Colors.icon.darkLime}
               />
             </Pressable>
-            <Pressable>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={isCalendarView ? "Show timeline" : "Show calendar"}
+              accessibilityState={{ selected: isCalendarView }}
+              disabled={isLoading || isSavingView || !group || !user}
+              hitSlop={8}
+              onPress={async () => {
+                if (!user || !group) return;
+                setIsSavingView(true);
+                try {
+                  const nextView = isCalendarView ? "timeline" : "calendar";
+                  await setStoredGroupView(user.id, group.id, nextView);
+                  setIsCalendarView(nextView === "calendar");
+                } catch {
+                  Alert.alert("Could not save view", "Please try again.");
+                } finally {
+                  setIsSavingView(false);
+                }
+              }}
+            >
               <FontAwesomeIcon
                 icon={faCalendar}
                 size={32}
-                color={Colors.icon.darkLime}
+                color={isCalendarView ? Colors.button.primary.color : Colors.icon.darkLime}
               />
             </Pressable>
 
@@ -196,10 +223,14 @@ export default function Group() {
         ) : null}
 
         <ScrollView
-          contentContainerStyle={styles.mainContainer}
+          key={isCalendarView ? "calendar" : "timeline"}
+          contentContainerStyle={[
+            styles.mainContainer,
+            isCalendarView && styles.calendarContainer,
+          ]}
           style={styles.mainContainerSelf}
         >
-          <Timeline />
+          {!isCalendarView && <Timeline />}
 
           <View style={styles.postsContain}>
             {isLoading ? (
@@ -214,6 +245,16 @@ export default function Group() {
               <Text style={styles.postsEmpty}>
                 No posts match these filters.
               </Text>
+            ) : isCalendarView ? (
+              <MonthlyMedia
+                posts={visiblePosts}
+                onPostPress={(postId) =>
+                  router.push({
+                    pathname: "/post/[postId]",
+                    params: { postId: String(postId) },
+                  })
+                }
+              />
             ) : (
               visiblePosts.map((post, index) => {
                 const postDate = new Date(post.createdAt);
@@ -413,6 +454,10 @@ const styles = StyleSheet.create({
   mainContainerSelf: {
     flex: 1,
     width: "100%",
+  },
+  calendarContainer: {
+    flexDirection: "column",
+    paddingBottom: 128,
   },
   postsContain: {
     flexGrow: 1,
