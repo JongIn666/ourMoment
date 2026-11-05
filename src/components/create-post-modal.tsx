@@ -73,7 +73,6 @@ export function CreatePostModal({ visibleBoolean, closeFunction, groupId, onCrea
   return (
     <Modal visible={visibleBoolean} transparent animationType="fade" onRequestClose={closeFunction}>
       <ModalView style={styles.modal}>
-        <ModalClose closeFunction={closeFunction} accessibilityLabel="Close create post" />
         <WhiteBox style={styles.formBox}>
           <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.formArea}>
             <ScrollView contentContainerStyle={styles.form} keyboardShouldPersistTaps="handled">
@@ -151,6 +150,7 @@ export function CreatePostModal({ visibleBoolean, closeFunction, groupId, onCrea
             />
           </View>
         </WhiteBox>
+        <ModalClose closeFunction={closeFunction} accessibilityLabel="Close create post" />
       </ModalView>
     </Modal>
   );
