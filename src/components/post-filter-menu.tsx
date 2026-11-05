@@ -4,6 +4,14 @@ import { Modal, Pressable, StyleSheet, Switch, Text, View } from "react-native";
 import { Colors } from "@/constants/theme";
 import { emptyFilters, type PostFilters } from "@/lib/post-filters";
 
+import DateTimePicker, {
+    type DateTimePickerEvent,
+} from "@react-native-community/datetimepicker";
+import { useState } from "react";
+import {
+    Platform
+} from "react-native";
+
 type PostFilterMenuProps = {
   visible: boolean;
   filters: PostFilters;
@@ -12,6 +20,39 @@ type PostFilterMenuProps = {
   onClose: () => void;
 };
 
+type DateButtonProps = {
+  label: string;
+  value: Date | null;
+  onPress: () => void;
+  onClear: () => void;
+};
+
+function DateButton({ label, value, onPress, onClear }: DateButtonProps) {
+  return (
+    <View style={styles.dateField}>
+      <Pressable
+        accessibilityRole="button"
+        onPress={onPress}
+        style={styles.dateButton}
+      >
+        <Text style={styles.dateLabel}>{label}</Text>
+        <Text style={styles.dateValue}>
+          {value ? value.toLocaleDateString() : "Any"}
+        </Text>
+      </Pressable>
+      {value && (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={`Clear ${label} date`}
+          onPress={onClear}
+        >
+          <Text style={styles.clearDateText}>Clear</Text>
+        </Pressable>
+      )}
+    </View>
+  );
+}
+
 export function PostFilterMenu({
   visible,
   filters,
@@ -19,6 +60,19 @@ export function PostFilterMenu({
   onChange,
   onClose,
 }: PostFilterMenuProps) {
+  const [editingDate, setEditingDate] = useState<"from" | "to" | null>(null);
+
+  function handleDateChange(event: DateTimePickerEvent, selected?: Date) {
+    const field = editingDate;
+    if (Platform.OS !== "ios") setEditingDate(null);
+    if (event.type === "dismissed" || !field || !selected) return;
+    onChange(
+      field === "from"
+        ? { ...filters, from: selected }
+        : { ...filters, to: selected },
+    );
+  }
+
   return (
     <Modal
       animationType="fade"
@@ -65,6 +119,42 @@ export function PostFilterMenu({
                 );
               })}
             </View>
+          </View>
+
+          <View style={styles.section}>
+            <Text style={styles.label}>Date range</Text>
+            <View style={styles.dateRow}>
+              <DateButton
+                label="From"
+                value={filters.from}
+                onPress={() => setEditingDate("from")}
+                onClear={() => onChange({ ...filters, from: null })}
+              />
+              <DateButton
+                label="To"
+                value={filters.to}
+                onPress={() => setEditingDate("to")}
+                onClear={() => onChange({ ...filters, to: null })}
+              />
+            </View>
+            {editingDate && (
+              <View>
+                <DateTimePicker
+                  mode="date"
+                  display={Platform.OS === "ios" ? "spinner" : "default"}
+                  value={filters[editingDate] ?? new Date()}
+                  onChange={handleDateChange}
+                />
+                {Platform.OS === "ios" && (
+                  <Pressable
+                    onPress={() => setEditingDate(null)}
+                    style={styles.actionButton}
+                  >
+                    <Text style={styles.clearText}>Done</Text>
+                  </Pressable>
+                )}
+              </View>
+            )}
           </View>
 
           <View style={styles.row}>
@@ -176,5 +266,33 @@ const styles = StyleSheet.create({
   memberButtonTextSelected: {
     color: Colors.button.primary.label,
     fontWeight: "700",
+  },
+  dateRow: {
+    flexDirection: "row",
+    gap: 10,
+  },
+  dateField: {
+    flex: 1,
+    gap: 4,
+  },
+  dateButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderWidth: 1,
+    borderColor: Colors.interface.border,
+    backgroundColor: Colors.box.background,
+  },
+  dateLabel: {
+    color: Colors.interface.text,
+    fontSize: 12,
+  },
+  dateValue: {
+    color: Colors.heading,
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  clearDateText: {
+    color: Colors.textLink,
+    fontSize: 13,
   },
 });
