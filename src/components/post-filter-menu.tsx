@@ -1,3 +1,4 @@
+import type { GroupMember } from "@/lib/auth-api";
 import { Modal, Pressable, StyleSheet, Switch, Text, View } from "react-native";
 
 import { Colors } from "@/constants/theme";
@@ -6,6 +7,7 @@ import { emptyFilters, type PostFilters } from "@/lib/post-filters";
 type PostFilterMenuProps = {
   visible: boolean;
   filters: PostFilters;
+  members: GroupMember[];
   onChange: (filters: PostFilters) => void;
   onClose: () => void;
 };
@@ -13,6 +15,7 @@ type PostFilterMenuProps = {
 export function PostFilterMenu({
   visible,
   filters,
+  members,
   onChange,
   onClose,
 }: PostFilterMenuProps) {
@@ -26,6 +29,43 @@ export function PostFilterMenu({
       <View style={styles.overlay}>
         <View style={styles.dialog}>
           <Text style={styles.title}>Filter Posts</Text>
+
+          <View style={styles.section}>
+            <Text style={styles.label}>Posted by</Text>
+            <View style={styles.memberList}>
+              {members.map((member) => {
+                const isSelected = filters.authorId === member.id;
+                return (
+                  <Pressable
+                    key={member.id}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected: isSelected }}
+                    onPress={() =>
+                      onChange({
+                        ...filters,
+                        authorId: isSelected ? null : member.id,
+                      })
+                    }
+                    style={[
+                      styles.memberButton,
+                      isSelected && styles.memberButtonSelected,
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.memberButtonText,
+                        isSelected && styles.memberButtonTextSelected,
+                      ]}
+                    >
+                      {member.profile.displayName
+                        ? `${member.profile.displayName} (@${member.username})`
+                        : member.username}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+          </View>
 
           <View style={styles.row}>
             <Text style={styles.label}>Photos and videos only</Text>
@@ -108,6 +148,32 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.button.primary.color,
   },
   doneText: {
+    color: Colors.button.primary.label,
+    fontWeight: "700",
+  },
+  section: {
+    gap: 8,
+  },
+  memberList: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+  },
+  memberButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderWidth: 2,
+    borderRadius: 16,
+    borderColor: Colors.box.border,
+  },
+  memberButtonSelected: {
+    backgroundColor: Colors.button.primary.color,
+    borderColor: Colors.button.primary.border,
+  },
+  memberButtonText: {
+    color: Colors.interface.text,
+  },
+  memberButtonTextSelected: {
     color: Colors.button.primary.label,
     fontWeight: "700",
   },

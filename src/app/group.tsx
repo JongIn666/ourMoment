@@ -278,6 +278,7 @@ export default function Group() {
         <PostFilterMenu
           visible={isFilterMenuOpen}
           filters={filters}
+          members={group ? group.members : []}
           onChange={setFilters}
           onClose={() => setIsFilterMenuOpen(false)}
         />
