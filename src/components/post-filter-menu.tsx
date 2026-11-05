@@ -144,6 +144,8 @@ export function PostFilterMenu({
                 <DateTimePicker
                   mode="date"
                   display={Platform.OS === "ios" ? "spinner" : "default"}
+                  themeVariant={Platform.OS === "ios" ? "light" : undefined}
+                  textColor={Platform.OS === "ios" ? Colors.heading : undefined}
                   value={filters[editingDate] ?? new Date()}
                   onChange={handleDateChange}
                 />

@@ -74,7 +74,6 @@ export function CreateGroupModal({visibleBoolean, closeFunction}: props) {
             onRequestClose={closeFunction}
         >
             <ModalView style={styles.addGroupModal}>
-                <ModalClose closeFunction={closeFunction}/>
                 <WhiteBox style={styles.addGroupBox}>
                     <View style={styles.mainView}>
                         <Pressable style={styles.uploadGroupButton}>
@@ -101,6 +100,10 @@ export function CreateGroupModal({visibleBoolean, closeFunction}: props) {
                     type="primary"
                     disabled={isSaving}
                     onPress={handleCreate}
+                />
+                <ModalClose
+                    closeFunction={closeFunction}
+                    accessibilityLabel="Close create group"
                 />
             </ModalView>
         </Modal>

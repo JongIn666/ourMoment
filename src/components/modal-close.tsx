@@ -13,6 +13,8 @@ export function ModalClose({ closeFunction, ...rest }: ModalCloseProps) {
             <Pressable
             style={styles.closeButton}
             onPress={closeFunction}
+            accessibilityRole="button"
+            hitSlop={10}
             {...rest}
         >
             <FontAwesomeIcon icon={faXmark} color={Colors.icon.white} size={24} />
@@ -24,6 +26,14 @@ const styles = StyleSheet.create({
   closeButton: {
     position: 'absolute',
     top: 44,
-    right: 14
+    right: 14,
+    zIndex: 10,
+    elevation: 10,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: Colors.button.primary.color,
   }
 })
