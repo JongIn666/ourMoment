@@ -8,9 +8,9 @@ import DateTimePicker, {
     type DateTimePickerEvent,
 } from "@react-native-community/datetimepicker";
 import { useState } from "react";
-import {
-    Platform
-} from "react-native";
+import { Platform } from "react-native";
+
+import { WEATHER_OPTIONS } from "@/lib/weather";
 
 type PostFilterMenuProps = {
   visible: boolean;
@@ -163,6 +163,43 @@ export function PostFilterMenu({
               value={filters.mediaOnly}
               onValueChange={(mediaOnly) => onChange({ ...filters, mediaOnly })}
             />
+          </View>
+
+          <View style={styles.section}>
+            <Text style={styles.label}>Weather</Text>
+            <View style={styles.memberList}>
+              {WEATHER_OPTIONS.filter((option) => option.value !== "").map(
+                (option) => {
+                  const isSelected = filters.weather === option.value;
+                  return (
+                    <Pressable
+                      key={option.value}
+                      accessibilityRole="button"
+                      accessibilityState={{ selected: isSelected }}
+                      onPress={() =>
+                        onChange({
+                          ...filters,
+                          weather: isSelected ? null : option.value,
+                        })
+                      }
+                      style={[
+                        styles.memberButton,
+                        isSelected && styles.memberButtonSelected,
+                      ]}
+                    >
+                      <Text
+                        style={[
+                          styles.memberButtonText,
+                          isSelected && styles.memberButtonTextSelected,
+                        ]}
+                      >
+                        {option.emoji} {option.label}
+                      </Text>
+                    </Pressable>
+                  );
+                },
+              )}
+            </View>
           </View>
 
           <View style={styles.actions}>

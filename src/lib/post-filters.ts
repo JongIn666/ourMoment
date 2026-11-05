@@ -1,10 +1,12 @@
 import type { UserPost } from "@/lib/auth-api";
+import type { WeatherValue } from "@/lib/weather";
 
 export type PostFilters = {
   from: Date | null;
   to: Date | null;
   authorId: number | null;
   mediaOnly: boolean;
+  weather: WeatherValue | null;
 };
 
 export const emptyFilters: PostFilters = {
@@ -12,6 +14,7 @@ export const emptyFilters: PostFilters = {
   to: null,
   authorId: null,
   mediaOnly: false,
+  weather: null,
 };
 
 export function filterPosts(posts: UserPost[], filters: PostFilters) {
@@ -22,6 +25,8 @@ export function filterPosts(posts: UserPost[], filters: PostFilters) {
     if (filters.authorId !== null && post.author.id !== filters.authorId)
       return false;
     if (filters.mediaOnly && post.media.length === 0) return false;
+    if (filters.weather !== null && post.weather !== filters.weather)
+      return false;
     return true;
   });
 }
@@ -31,7 +36,8 @@ export function hasActiveFilters(filters: PostFilters) {
     filters.from !== null ||
     filters.to !== null ||
     filters.authorId !== null ||
-    filters.mediaOnly
+    filters.mediaOnly ||
+    filters.weather !== null
   );
 }
 
