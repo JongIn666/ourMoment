@@ -250,7 +250,7 @@ export default function Profile() {
                     link={post.link}
                     weather={post.weather}
                     reactionCounts={post.reactionCounts ?? {}}
-                    tags={[]}
+                    tags={post.tags ?? []}
                     emojiReacts={[]}
                     commentNum={0}
                     onOpenPress={() =>

@@ -1,6 +1,6 @@
-import { API_URL } from '@/constants/api';
-import { File } from 'expo-file-system';
-import type { ImagePickerAsset } from 'expo-image-picker';
+import { API_URL } from "@/constants/api";
+import { File } from "expo-file-system";
+import type { ImagePickerAsset } from "expo-image-picker";
 
 export type Profile = {
   username: string;
@@ -48,11 +48,12 @@ export type UserPost = {
   media: Media[];
   reactionCounts: Record<string, number>;
   myReactions: string[];
+  tags: Tag[];
 };
 
 export type Media = {
   id: number;
-  type: 'image' | 'video';
+  type: "image" | "video";
   url: string;
 };
 
@@ -69,6 +70,12 @@ export type GroupMember = {
   };
 };
 
+export type Tag = {
+  id: number;
+  name: string;
+  color: string;
+};
+
 type AuthResponse = {
   token: string;
   user: AuthUser;
@@ -82,8 +89,8 @@ type ApiErrorBody = {
 
 function authHeaders(token?: string, isFormData = false) {
   return {
-    ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
-    'ngrok-skip-browser-warning': 'true',
+    ...(isFormData ? {} : { "Content-Type": "application/json" }),
+    "ngrok-skip-browser-warning": "true",
     ...(token ? { Authorization: `Token ${token}` } : {}),
   };
 }
@@ -93,12 +100,12 @@ function readApiError(body: ApiErrorBody) {
   if (body.non_field_errors?.length) return body.non_field_errors[0];
 
   const firstFieldError = Object.values(body).find(
-    (value): value is string | string[] => (
-      typeof value === 'string' || (Array.isArray(value) && typeof value[0] === 'string')
-    ),
+    (value): value is string | string[] =>
+      typeof value === "string" ||
+      (Array.isArray(value) && typeof value[0] === "string"),
   );
   if (Array.isArray(firstFieldError)) return firstFieldError[0];
-  return firstFieldError ?? 'Something went wrong. Please try again.';
+  return firstFieldError ?? "Something went wrong. Please try again.";
 }
 
 async function readApiBody(response: Response) {
@@ -109,7 +116,11 @@ async function readApiBody(response: Response) {
   }
 }
 
-async function apiFetch<T>(path: string, options: RequestInit = {}, token?: string): Promise<T> {
+async function apiFetch<T>(
+  path: string,
+  options: RequestInit = {},
+  token?: string,
+): Promise<T> {
   let response: Response;
   try {
     response = await fetch(`${API_URL}${path}`, {
@@ -120,7 +131,9 @@ async function apiFetch<T>(path: string, options: RequestInit = {}, token?: stri
       },
     });
   } catch {
-    throw new Error('Unable to reach the server. Check your connection and try again.');
+    throw new Error(
+      "Unable to reach the server. Check your connection and try again.",
+    );
   }
 
   if (response.status === 204) {
@@ -129,7 +142,7 @@ async function apiFetch<T>(path: string, options: RequestInit = {}, token?: stri
 
   const data = await readApiBody(response);
   if (!data) {
-    throw new Error('Something went wrong. Please try again.');
+    throw new Error("Something went wrong. Please try again.");
   }
 
   if (!response.ok) {
@@ -140,8 +153,8 @@ async function apiFetch<T>(path: string, options: RequestInit = {}, token?: stri
 }
 
 export function login(identifier: string, password: string) {
-  return apiFetch<AuthResponse>('/api/auth/login/', {
-    method: 'POST',
+  return apiFetch<AuthResponse>("/api/auth/login/", {
+    method: "POST",
     body: JSON.stringify({ identifier, password }),
   });
 }
@@ -153,29 +166,39 @@ export function register(
   confirmPassword: string,
   displayName: string,
 ) {
-  return apiFetch<AuthResponse>('/api/auth/register/', {
-    method: 'POST',
-    body: JSON.stringify({ username, email, password, confirmPassword, displayName }),
+  return apiFetch<AuthResponse>("/api/auth/register/", {
+    method: "POST",
+    body: JSON.stringify({
+      username,
+      email,
+      password,
+      confirmPassword,
+      displayName,
+    }),
   });
 }
 
-export function resetPassword(identifier: string, password: string, confirmPassword: string) {
-  return apiFetch<{ detail: string }>('/api/auth/reset-password/', {
-    method: 'POST',
+export function resetPassword(
+  identifier: string,
+  password: string,
+  confirmPassword: string,
+) {
+  return apiFetch<{ detail: string }>("/api/auth/reset-password/", {
+    method: "POST",
     body: JSON.stringify({ identifier, password, confirmPassword }),
   });
 }
 
 export function checkResetIdentifier(identifier: string) {
-  return apiFetch<{ detail: string }>('/api/auth/reset-password/check/', {
-    method: 'POST',
+  return apiFetch<{ detail: string }>("/api/auth/reset-password/check/", {
+    method: "POST",
     body: JSON.stringify({ identifier }),
   });
 }
 
 export function googleLogin(idToken: string) {
-  return apiFetch<AuthResponse>('/api/auth/google/', {
-    method: 'POST',
+  return apiFetch<AuthResponse>("/api/auth/google/", {
+    method: "POST",
     body: JSON.stringify({ idToken }),
   });
 }
@@ -186,32 +209,36 @@ export function googleLoginWithCode(
   redirectUri: string,
   clientId: string,
 ) {
-  return apiFetch<AuthResponse>('/api/auth/google/', {
-    method: 'POST',
+  return apiFetch<AuthResponse>("/api/auth/google/", {
+    method: "POST",
     body: JSON.stringify({ code, codeVerifier, redirectUri, clientId }),
   });
 }
 
 export function getCurrentUser(token: string) {
-  return apiFetch<AuthUser>('/api/auth/me/', {}, token);
+  return apiFetch<AuthUser>("/api/auth/me/", {}, token);
 }
 
 export function getProfile(token: string) {
-  return apiFetch<Profile>('/api/profile/', {}, token);
+  return apiFetch<Profile>("/api/profile/", {}, token);
 }
 
 export function getGroups(token: string) {
-  return apiFetch<UserGroup[]>('/api/groups/', {}, token);
+  return apiFetch<UserGroup[]>("/api/groups/", {}, token);
 }
 
 export function createGroup(
   token: string,
-  group: Pick<UserGroup, 'name' | 'description'>,
+  group: Pick<UserGroup, "name" | "description">,
 ) {
-  return apiFetch<UserGroup>('/api/groups/', {
-    method: 'POST',
-    body: JSON.stringify(group),
-  }, token);
+  return apiFetch<UserGroup>(
+    "/api/groups/",
+    {
+      method: "POST",
+      body: JSON.stringify(group),
+    },
+    token,
+  );
 }
 
 export function getGroup(token: string, groupId: number) {
@@ -219,10 +246,14 @@ export function getGroup(token: string, groupId: number) {
 }
 
 export function joinGroup(token: string, inviteCode: string) {
-  return apiFetch<UserGroup>('/api/groups/join/', {
-    method: 'POST',
-    body: JSON.stringify({ inviteCode }),
-  }, token);
+  return apiFetch<UserGroup>(
+    "/api/groups/join/",
+    {
+      method: "POST",
+      body: JSON.stringify({ inviteCode }),
+    },
+    token,
+  );
 }
 
 export function getGroupPosts(token: string, groupId: number) {
@@ -230,12 +261,36 @@ export function getGroupPosts(token: string, groupId: number) {
 }
 
 export function getMyPosts(token: string) {
-  return apiFetch<UserPost[]>('/api/posts/mine/', {}, token);
+  return apiFetch<UserPost[]>("/api/posts/mine/", {}, token);
 }
 
 export async function getGroupDrafts(token: string, groupId: number) {
   const posts = await getMyPosts(token);
   return posts.filter((post) => post.group === groupId && post.isDraft);
+}
+
+export function getGroupTags(token: string, groupId: number) {
+  return apiFetch<Tag[]>(`/api/groups/${groupId}/tags/`, {}, token);
+}
+
+export function createTag(token: string, groupId: number, name: string) {
+  return apiFetch<Tag>(
+    `/api/groups/${groupId}/tags/`,
+    { method: "POST", body: JSON.stringify({ name }) },
+    token,
+  );
+}
+
+export function updateTag(
+  token: string,
+  tagId: number,
+  updates: Partial<Pick<Tag, "name" | "color">>,
+) {
+  return apiFetch<Tag>(
+    `/api/tags/${tagId}/`,
+    { method: "PATCH", body: JSON.stringify(updates) },
+    token,
+  );
 }
 
 export function getPost(token: string, postId: number) {
@@ -245,38 +300,57 @@ export function getPost(token: string, postId: number) {
 export function createPost(
   token: string,
   groupId: number,
-  post: Pick<UserPost, 'content' | 'createdAt'>,
+  post: Pick<UserPost, "content" | "createdAt">,
   media: ImagePickerAsset[] = [],
-  link = '',
+  link = "",
   isDraft = false,
-  weather = '',
+  weather = "",
+  tagIds: number[] = [],
 ) {
   const body = new FormData();
-  body.append('content', post.content);
-  body.append('createdAt', post.createdAt);
-  body.append('link', link);
-  body.append('weather', weather);
-  body.append('isDraft', String(isDraft));
+  body.append("content", post.content);
+  body.append("createdAt", post.createdAt);
+  body.append("link", link);
+  body.append("weather", weather);
+  body.append("tagIds", JSON.stringify(tagIds));
+  body.append("isDraft", String(isDraft));
   media.forEach((asset) => {
-    body.append('uploads', asset.file ?? new File(asset.uri));
+    body.append("uploads", asset.file ?? new File(asset.uri));
   });
-  return apiFetch<UserPost>(`/api/groups/${groupId}/posts/`, {
-    method: 'POST',
-    body,
-  }, token);
+  return apiFetch<UserPost>(
+    `/api/groups/${groupId}/posts/`,
+    {
+      method: "POST",
+      body,
+    },
+    token,
+  );
 }
 
 export function deletePost(token: string, postId: number) {
-  return apiFetch<void>(`/api/posts/${postId}/`, {
-    method: 'DELETE',
-  }, token);
+  return apiFetch<void>(
+    `/api/posts/${postId}/`,
+    {
+      method: "DELETE",
+    },
+    token,
+  );
 }
 
-export function setPostReaction(token: string, postId: number, emoji: string, active: boolean) {
-  return apiFetch<UserPost>(`/api/posts/${postId}/reactions/`, {
-    method: active ? 'POST' : 'DELETE',
-    body: JSON.stringify({ emoji }),
-  }, token);
+export function setPostReaction(
+  token: string,
+  postId: number,
+  emoji: string,
+  active: boolean,
+) {
+  return apiFetch<UserPost>(
+    `/api/posts/${postId}/reactions/`,
+    {
+      method: active ? "POST" : "DELETE",
+      body: JSON.stringify({ emoji }),
+    },
+    token,
+  );
 }
 
 export function updatePost(
@@ -289,92 +363,147 @@ export function updatePost(
   link?: string,
   isDraft?: boolean,
   weather?: string,
+  tagIds?: number[],
 ) {
   const body = new FormData();
-  body.append('content', content);
-  body.append('createdAt', createdAt);
-  if (link !== undefined) body.append('link', link);
-  if (isDraft !== undefined) body.append('isDraft', String(isDraft));
-  if (weather !== undefined) body.append('weather', weather);
-  media.forEach((asset) => body.append('uploads', asset.file ?? new File(asset.uri)));
-  removedMedia.forEach((id) => body.append('removedMedia', String(id)));
-  return apiFetch<UserPost>(`/api/posts/${postId}/`, {
-    method: 'PATCH',
-    body,
-  }, token);
+  body.append("content", content);
+  body.append("createdAt", createdAt);
+  if (link !== undefined) body.append("link", link);
+  if (isDraft !== undefined) body.append("isDraft", String(isDraft));
+  if (weather !== undefined) body.append("weather", weather);
+  if (tagIds !== undefined) body.append("tagIds", JSON.stringify(tagIds));
+  media.forEach((asset) =>
+    body.append("uploads", asset.file ?? new File(asset.uri)),
+  );
+  removedMedia.forEach((id) => body.append("removedMedia", String(id)));
+  return apiFetch<UserPost>(
+    `/api/posts/${postId}/`,
+    {
+      method: "PATCH",
+      body,
+    },
+    token,
+  );
 }
 
 export function updateGroup(
   token: string,
   groupId: number,
-  updates: Pick<UserGroup, 'name' | 'description'>,
+  updates: Pick<UserGroup, "name" | "description">,
 ) {
-  return apiFetch<UserGroup>(`/api/groups/${groupId}/`, {
-    method: 'PATCH',
-    body: JSON.stringify(updates),
-  }, token);
+  return apiFetch<UserGroup>(
+    `/api/groups/${groupId}/`,
+    {
+      method: "PATCH",
+      body: JSON.stringify(updates),
+    },
+    token,
+  );
 }
 
-export function updateGroupReactionEmojis(token: string, groupId: number, reactionEmojis: string[]) {
-  return apiFetch<{ reactionEmojis: string[] }>(`/api/groups/${groupId}/reaction-emojis/`, {
-    method: 'PATCH',
-    body: JSON.stringify({ reactionEmojis }),
-  }, token);
+export function updateGroupReactionEmojis(
+  token: string,
+  groupId: number,
+  reactionEmojis: string[],
+) {
+  return apiFetch<{ reactionEmojis: string[] }>(
+    `/api/groups/${groupId}/reaction-emojis/`,
+    {
+      method: "PATCH",
+      body: JSON.stringify({ reactionEmojis }),
+    },
+    token,
+  );
 }
 
 export function deleteGroup(token: string, groupId: number) {
-  return apiFetch<void>(`/api/groups/${groupId}/`, {
-    method: 'DELETE',
-  }, token);
+  return apiFetch<void>(
+    `/api/groups/${groupId}/`,
+    {
+      method: "DELETE",
+    },
+    token,
+  );
 }
 
 export function leaveGroup(token: string, groupId: number) {
-  return apiFetch<void>(`/api/groups/${groupId}/members/me/`, {
-    method: 'DELETE',
-  }, token);
+  return apiFetch<void>(
+    `/api/groups/${groupId}/members/me/`,
+    {
+      method: "DELETE",
+    },
+    token,
+  );
 }
 
 export function updateProfile(
   token: string,
-  profile: Pick<Profile, 'username' | 'displayName' | 'birthday' | 'showAge' | 'showBirthday' | 'bio'>,
+  profile: Pick<
+    Profile,
+    "username" | "displayName" | "birthday" | "showAge" | "showBirthday" | "bio"
+  >,
 ) {
-  return apiFetch<Profile>('/api/profile/', {
-    method: 'PATCH',
-    body: JSON.stringify(profile),
-  }, token);
+  return apiFetch<Profile>(
+    "/api/profile/",
+    {
+      method: "PATCH",
+      body: JSON.stringify(profile),
+    },
+    token,
+  );
 }
 
 export function updateUsername(token: string, username: string) {
-  return apiFetch<Profile>('/api/profile/', {
-    method: 'PATCH',
-    body: JSON.stringify({ username }),
-  }, token);
+  return apiFetch<Profile>(
+    "/api/profile/",
+    {
+      method: "PATCH",
+      body: JSON.stringify({ username }),
+    },
+    token,
+  );
 }
 
 export function updateProfilePicture(
   token: string,
   image: { base64: string; name: string; type: string },
 ) {
-  return apiFetch<Profile>('/api/profile/picture/', {
-    method: 'POST',
-    body: JSON.stringify(image),
-  }, token);
+  return apiFetch<Profile>(
+    "/api/profile/picture/",
+    {
+      method: "POST",
+      body: JSON.stringify(image),
+    },
+    token,
+  );
 }
 
 export function updateEmail(token: string, email: string) {
-  return apiFetch<{ email: string }>('/api/auth/email/', {
-    method: 'PATCH',
-    body: JSON.stringify({ email }),
-  }, token);
+  return apiFetch<{ email: string }>(
+    "/api/auth/email/",
+    {
+      method: "PATCH",
+      body: JSON.stringify({ email }),
+    },
+    token,
+  );
 }
 
-export function updatePassword(token: string, password: string, confirmPassword: string) {
-  return apiFetch<{ detail: string }>('/api/auth/password/', {
-    method: 'PATCH',
-    body: JSON.stringify({ password, confirmPassword }),
-  }, token);
+export function updatePassword(
+  token: string,
+  password: string,
+  confirmPassword: string,
+) {
+  return apiFetch<{ detail: string }>(
+    "/api/auth/password/",
+    {
+      method: "PATCH",
+      body: JSON.stringify({ password, confirmPassword }),
+    },
+    token,
+  );
 }
 
 export function logout(token: string) {
-  return apiFetch<void>('/api/auth/logout/', { method: 'POST' }, token);
+  return apiFetch<void>("/api/auth/logout/", { method: "POST" }, token);
 }

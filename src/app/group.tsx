@@ -2,12 +2,12 @@ import { SafeAreaViewThemed } from "@/components/safe-area-themed";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useState } from "react";
 import {
-    ActivityIndicator,
-    Pressable,
-    ScrollView,
-    StyleSheet,
-    Text,
-    View,
+  ActivityIndicator,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
 } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
@@ -28,11 +28,16 @@ import * as authApi from "@/lib/auth-api";
 
 import { PostFilterMenu } from "@/components/post-filter-menu";
 import {
-    emptyFilters,
-    filterPosts,
-    hasActiveFilters,
-    type PostFilters,
+  emptyFilters,
+  filterPosts,
+  hasActiveFilters,
+  type PostFilters,
 } from "@/lib/post-filters";
+
+import { NewTagMenu } from "@/components/new-tag-menu";
+import { TagColorMenu } from "@/components/tag-color-menu";
+import { faPalette } from "@fortawesome/free-solid-svg-icons/faPalette";
+import { faTag } from "@fortawesome/free-solid-svg-icons/faTag";
 
 export default function Group() {
   const router = useRouter();
@@ -45,6 +50,9 @@ export default function Group() {
   const [filters, setFilters] = useState<PostFilters>(emptyFilters);
   const [isFilterMenuOpen, setIsFilterMenuOpen] = useState(false);
   const [creatingPost, setCreatingPost] = useState(false);
+  const [tags, setTags] = useState<authApi.Tag[]>([]);
+  const [isNewTagOpen, setIsNewTagOpen] = useState(false);
+  const [isTagColorsOpen, setIsTagColorsOpen] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
@@ -63,11 +71,13 @@ export default function Group() {
       Promise.all([
         authApi.getGroup(token, id),
         authApi.getGroupPosts(token, id),
+        authApi.getGroupTags(token, id),
       ])
-        .then(([currentGroup, currentPosts]) => {
+        .then(([currentGroup, currentPosts, currentTags]) => {
           if (isActive) {
             setGroup(currentGroup);
             setPosts(currentPosts);
+            setTags(currentTags);
           }
         })
         .catch((caughtError: unknown) => {
@@ -98,6 +108,28 @@ export default function Group() {
           <BackButtonView />
 
           <View style={styles.groupControls}>
+            <Pressable
+              accessibilityLabel="Create a tag"
+              hitSlop={8}
+              onPress={() => setIsNewTagOpen(true)}
+            >
+              <FontAwesomeIcon
+                icon={faTag}
+                size={32}
+                color={Colors.icon.darkLime}
+              />
+            </Pressable>
+            <Pressable
+              accessibilityLabel="Tag colors"
+              hitSlop={8}
+              onPress={() => setIsTagColorsOpen(true)}
+            >
+              <FontAwesomeIcon
+                icon={faPalette}
+                size={32}
+                color={Colors.icon.darkLime}
+              />
+            </Pressable>
             <Pressable>
               <FontAwesomeIcon
                 icon={faCalendar}
@@ -207,7 +239,7 @@ export default function Group() {
                     media={post.media}
                     link={post.link}
                     weather={post.weather}
-                    tags={[]}
+                    tags={post.tags ?? []}
                     emojiReacts={[]}
                     reactionEmojis={group?.reactionEmojis ?? []}
                     reactionCounts={post.reactionCounts ?? {}}
@@ -290,11 +322,42 @@ export default function Group() {
           onChange={setFilters}
           onClose={() => setIsFilterMenuOpen(false)}
         />
+        <NewTagMenu
+          visible={isNewTagOpen}
+          onClose={() => setIsNewTagOpen(false)}
+          onCreate={async (name) => {
+            if (!token || !group)
+              throw new Error("This group could not be found.");
+            const tag = await authApi.createTag(token, group.id, name);
+            setTags((current) => [...current, tag]);
+          }}
+        />
+        <TagColorMenu
+          visible={isTagColorsOpen}
+          tags={tags}
+          onClose={() => setIsTagColorsOpen(false)}
+          onColorChange={async (tag, color) => {
+            if (!token) throw new Error("Please sign in again.");
+            const updated = await authApi.updateTag(token, tag.id, { color });
+            setTags((current) =>
+              current.map((t) => (t.id === updated.id ? updated : t)),
+            );
+            setPosts((current) =>
+              current.map((post) => ({
+                ...post,
+                tags: (post.tags ?? []).map((t) =>
+                  t.id === updated.id ? updated : t,
+                ),
+              })),
+            );
+          }}
+        />
         {group && (
           <CreatePostModal
             visibleBoolean={creatingPost}
             closeFunction={() => setCreatingPost(false)}
             groupId={group.id}
+            tags={tags}
             onCreated={(createdPost, isDraft) => {
               if (!isDraft)
                 setPosts((currentPosts) => [createdPost, ...currentPosts]);

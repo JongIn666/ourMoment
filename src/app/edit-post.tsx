@@ -1,5 +1,5 @@
-import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useLocalSearchParams, useRouter } from "expo-router";
+import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -8,40 +8,50 @@ import {
   StyleSheet,
   Text,
   View,
-} from 'react-native';
-import { SafeAreaProvider } from 'react-native-safe-area-context';
+} from "react-native";
+import { SafeAreaProvider } from "react-native-safe-area-context";
 
-import { BackButtonView } from '@/components/back-button-view';
-import { DateTimeFields } from '@/components/date-time-fields';
-import { LoginButton } from '@/components/login-button';
-import { PostMedia } from '@/components/post-media';
-import { SafeAreaViewThemed } from '@/components/safe-area-themed';
-import { TextInputThemed } from '@/components/text-input-themed';
-import { WeatherMenu } from '@/components/weather-menu';
-import { Colors } from '@/constants/theme';
-import { useAuth } from '@/context/auth';
-import { usePostMedia } from '@/hooks/use-post-media';
-import * as authApi from '@/lib/auth-api';
-import { parsePostLink } from '@/lib/post-link';
+import { BackButtonView } from "@/components/back-button-view";
+import { DateTimeFields } from "@/components/date-time-fields";
+import { LoginButton } from "@/components/login-button";
+import { PostMedia } from "@/components/post-media";
+import { SafeAreaViewThemed } from "@/components/safe-area-themed";
+import { TagPicker } from "@/components/tag-picker";
+import { TextInputThemed } from "@/components/text-input-themed";
+import { WeatherMenu } from "@/components/weather-menu";
+import { Colors } from "@/constants/theme";
+import { useAuth } from "@/context/auth";
+import { usePostMedia } from "@/hooks/use-post-media";
+import * as authApi from "@/lib/auth-api";
+import { parsePostLink } from "@/lib/post-link";
 
 export default function EditPost() {
   const router = useRouter();
-  const { postId, content: initialContent, createdAt } = useLocalSearchParams<{
+  const {
+    postId,
+    content: initialContent,
+    createdAt,
+  } = useLocalSearchParams<{
     postId?: string;
     content?: string;
     createdAt?: string;
   }>();
   const { token } = useAuth();
-  const { media, setMedia, isPicking, mediaError, handlePickMedia } = usePostMedia();
+  const { media, setMedia, isPicking, mediaError, handlePickMedia } =
+    usePostMedia();
   const [loadedPost, setPost] = useState<authApi.UserPost | null>(null);
   const [removedMedia, setRemovedMedia] = useState<number[]>([]);
-  const [content, setContent] = useState(initialContent ?? '');
-  const [link, setLink] = useState('');
-  const [weather, setWeather] = useState('');
+  const [content, setContent] = useState(initialContent ?? "");
+  const [link, setLink] = useState("");
+  const [weather, setWeather] = useState("");
   const [postDate, setPostDate] = useState(() => {
     const parsedDate = createdAt ? new Date(createdAt) : null;
-    return parsedDate && !Number.isNaN(parsedDate.getTime()) ? parsedDate : new Date();
+    return parsedDate && !Number.isNaN(parsedDate.getTime())
+      ? parsedDate
+      : new Date();
   });
+  const [tags, setTags] = useState<authApi.Tag[]>([]);
+  const [tagIds, setTagIds] = useState<number[]>([]);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const post = loadedPost?.id === Number(postId) ? loadedPost : null;
@@ -50,13 +60,23 @@ export default function EditPost() {
     let isActive = true;
     if (!token) return;
 
-    authApi.getPost(token, Number(postId))
+    authApi
+      .getPost(token, Number(postId))
       .then((currentPost) => {
         if (isActive) {
           setPost(currentPost);
           setContent(currentPost.content);
           setLink(currentPost.link);
-          setWeather(currentPost.weather ?? '');
+          setWeather(currentPost.weather ?? "");
+          setTagIds(currentPost.tags.map((tag) => tag.id));
+          if (currentPost.group) {
+            authApi
+              .getGroupTags(token, currentPost.group)
+              .then((groupTags) => {
+                if (isActive) setTags(groupTags);
+              })
+              .catch(() => {});
+          }
           setPostDate(new Date(currentPost.createdAt));
           setMedia([]);
           setRemovedMedia([]);
@@ -65,7 +85,11 @@ export default function EditPost() {
       })
       .catch((caughtError: unknown) => {
         if (isActive) {
-          setError(caughtError instanceof Error ? caughtError.message : 'Could not load the post.');
+          setError(
+            caughtError instanceof Error
+              ? caughtError.message
+              : "Could not load the post.",
+          );
         }
       });
 
@@ -78,7 +102,7 @@ export default function EditPost() {
     ...(post?.media ?? []).filter((item) => !removedMedia.includes(item.id)),
     ...media.map((asset) => ({
       id: asset.uri,
-      type: asset.type === 'video' ? 'video' as const : 'image' as const,
+      type: asset.type === "video" ? ("video" as const) : ("image" as const),
       url: asset.uri,
     })),
   ];
@@ -87,11 +111,11 @@ export default function EditPost() {
     const trimmedContent = content.trim();
     const trimmedLink = link.trim();
     if (!token || !post || isSaving || isPicking) {
-      setError('This post could not be found.');
+      setError("This post could not be found.");
       return;
     }
     if (!trimmedContent && !trimmedLink && attachments.length === 0) {
-      setError('Write a moment or add media or a link.');
+      setError("Write a moment or add media or a link.");
       return;
     }
     setError(null);
@@ -108,16 +132,24 @@ export default function EditPost() {
         postLink,
         undefined,
         weather,
+        post.group ? tagIds : undefined,
       );
       if (router.canGoBack()) {
         router.back();
       } else if (post.group) {
-        router.replace({ pathname: '/group', params: { groupId: String(post.group) } });
+        router.replace({
+          pathname: "/group",
+          params: { groupId: String(post.group) },
+        });
       } else {
-        router.replace('/profile');
+        router.replace("/profile");
       }
     } catch (caughtError) {
-      setError(caughtError instanceof Error ? caughtError.message : 'Could not update the post.');
+      setError(
+        caughtError instanceof Error
+          ? caughtError.message
+          : "Could not update the post.",
+      );
     } finally {
       setIsSaving(false);
     }
@@ -133,10 +165,13 @@ export default function EditPost() {
         </View>
 
         <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          behavior={Platform.OS === "ios" ? "padding" : undefined}
           style={styles.formArea}
         >
-          <ScrollView contentContainerStyle={styles.form} keyboardShouldPersistTaps="handled">
+          <ScrollView
+            contentContainerStyle={styles.form}
+            keyboardShouldPersistTaps="handled"
+          >
             <LoginButton
               text="Upload images / video"
               type="secondary"
@@ -146,18 +181,28 @@ export default function EditPost() {
               labelStyle={styles.uploadLabel}
             />
             {!post && !error && <ActivityIndicator color={Colors.heading} />}
-            {mediaError && <Text accessibilityRole="alert" style={styles.error}>{mediaError}</Text>}
+            {mediaError && (
+              <Text accessibilityRole="alert" style={styles.error}>
+                {mediaError}
+              </Text>
+            )}
             {attachments.length > 0 && (
               <PostMedia
                 compact
                 media={attachments}
-                onRemove={isSaving || isPicking ? undefined : (id) => {
-                  if (typeof id === 'number') {
-                    setRemovedMedia((current) => [...current, id]);
-                  } else {
-                    setMedia((current) => current.filter((asset) => asset.uri !== id));
-                  }
-                }}
+                onRemove={
+                  isSaving || isPicking
+                    ? undefined
+                    : (id) => {
+                        if (typeof id === "number") {
+                          setRemovedMedia((current) => [...current, id]);
+                        } else {
+                          setMedia((current) =>
+                            current.filter((asset) => asset.uri !== id),
+                          );
+                        }
+                      }
+                }
               />
             )}
 
@@ -189,21 +234,41 @@ export default function EditPost() {
 
             <View style={styles.weatherSection}>
               <Text style={styles.label}>Weather</Text>
-              <WeatherMenu value={weather} onChange={setWeather} disabled={!post || isSaving || isPicking} />
+              <WeatherMenu
+                value={weather}
+                onChange={setWeather}
+                disabled={!post || isSaving || isPicking}
+              />
             </View>
+
+            {post?.group ? (
+              <View style={styles.tagSection}>
+                <Text style={styles.label}>Tags</Text>
+                <TagPicker
+                  tags={tags}
+                  selectedIds={tagIds}
+                  onChange={setTagIds}
+                  disabled={isSaving || isPicking}
+                />
+              </View>
+            ) : null}
 
             <View style={styles.dateTimeSection}>
               <Text style={styles.label}>Post time</Text>
               <DateTimeFields value={postDate} onChange={setPostDate} />
             </View>
 
-            {error && <Text accessibilityRole="alert" style={styles.error}>{error}</Text>}
+            {error && (
+              <Text accessibilityRole="alert" style={styles.error}>
+                {error}
+              </Text>
+            )}
           </ScrollView>
         </KeyboardAvoidingView>
 
         <View style={styles.actions}>
           <LoginButton
-            text={isSaving ? 'Saving…' : 'Save changes'}
+            text={isSaving ? "Saving…" : "Save changes"}
             type="primary"
             disabled={!post || isSaving || isPicking}
             onPress={handleSave}
@@ -216,7 +281,7 @@ export default function EditPost() {
 
 const styles = StyleSheet.create({
   screen: {
-    alignItems: 'stretch',
+    alignItems: "stretch",
     gap: 10,
   },
   heading: {
@@ -226,12 +291,12 @@ const styles = StyleSheet.create({
   eyebrow: {
     color: Colors.heading,
     fontSize: 12,
-    fontWeight: '700',
+    fontWeight: "700",
   },
   title: {
     color: Colors.heading,
     fontSize: 28,
-    fontWeight: '700',
+    fontWeight: "700",
   },
   formArea: {
     flex: 1,
@@ -243,14 +308,14 @@ const styles = StyleSheet.create({
   label: {
     color: Colors.heading,
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   contentInput: {
     height: 60,
   },
   uploadButton: {
-    alignSelf: 'flex-start',
-    width: 'auto',
+    alignSelf: "flex-start",
+    width: "auto",
     height: 44,
     paddingHorizontal: 12,
   },
@@ -265,12 +330,15 @@ const styles = StyleSheet.create({
     gap: 8,
     zIndex: 10,
   },
+  tagSection: {
+    gap: 8,
+  },
   error: {
-    color: '#9B2C2C',
+    color: "#9B2C2C",
     fontSize: 14,
   },
   actions: {
-    alignItems: 'center',
+    alignItems: "center",
     paddingTop: 8,
   },
 });

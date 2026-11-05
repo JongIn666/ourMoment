@@ -1,13 +1,13 @@
-import { BackButtonView } from '@/components/back-button-view';
-import { PostVideo } from '@/components/post-media';
-import { SafeAreaViewThemed } from '@/components/safe-area-themed';
-import { Colors } from '@/constants/theme';
-import { API_URL } from '@/constants/api';
-import { useAuth } from '@/context/auth';
-import * as authApi from '@/lib/auth-api';
-import { getWeatherOption } from '@/lib/weather';
-import { useLocalSearchParams, useFocusEffect } from 'expo-router';
-import { useCallback, useState } from 'react';
+import { BackButtonView } from "@/components/back-button-view";
+import { PostVideo } from "@/components/post-media";
+import { SafeAreaViewThemed } from "@/components/safe-area-themed";
+import { API_URL } from "@/constants/api";
+import { Colors } from "@/constants/theme";
+import { useAuth } from "@/context/auth";
+import * as authApi from "@/lib/auth-api";
+import { getWeatherOption } from "@/lib/weather";
+import { useFocusEffect, useLocalSearchParams } from "expo-router";
+import { useCallback, useState } from "react";
 import {
   ActivityIndicator,
   Image,
@@ -19,15 +19,20 @@ import {
   Text,
   View,
   useWindowDimensions,
-} from 'react-native';
-import { SafeAreaProvider } from 'react-native-safe-area-context';
+} from "react-native";
+import { SafeAreaProvider } from "react-native-safe-area-context";
 
 function getMediaSource(media: authApi.Media, token: string | null) {
   return {
     uri: media.url,
-    ...(token && media.url.startsWith(`${API_URL}/api/media/`) ? {
-      headers: { Authorization: `Token ${token}`, 'ngrok-skip-browser-warning': 'true' },
-    } : {}),
+    ...(token && media.url.startsWith(`${API_URL}/api/media/`)
+      ? {
+          headers: {
+            Authorization: `Token ${token}`,
+            "ngrok-skip-browser-warning": "true",
+          },
+        }
+      : {}),
   };
 }
 
@@ -45,7 +50,7 @@ export default function PostDetail() {
       let isActive = true;
       const id = Number(postId);
       if (!token || !Number.isInteger(id) || id <= 0) {
-        setError('This post could not be found.');
+        setError("This post could not be found.");
         setIsLoading(false);
         return () => {
           isActive = false;
@@ -54,13 +59,18 @@ export default function PostDetail() {
 
       setIsLoading(true);
       setError(null);
-      authApi.getPost(token, id)
+      authApi
+        .getPost(token, id)
         .then((currentPost) => {
           if (isActive) setPost(currentPost);
         })
         .catch((caughtError: unknown) => {
           if (isActive) {
-            setError(caughtError instanceof Error ? caughtError.message : 'Could not load this post.');
+            setError(
+              caughtError instanceof Error
+                ? caughtError.message
+                : "Could not load this post.",
+            );
           }
         })
         .finally(() => {
@@ -74,6 +84,7 @@ export default function PostDetail() {
   );
 
   const postDate = post ? new Date(post.createdAt) : null;
+  const postColor = post?.tags?.[0]?.color || undefined;
 
   return (
     <SafeAreaProvider>
@@ -88,18 +99,23 @@ export default function PostDetail() {
           <ActivityIndicator color={Colors.heading} style={styles.status} />
         ) : error || !post ? (
           <Text accessibilityRole="alert" style={styles.message}>
-            {error ?? 'This post could not be found.'}
+            {error ?? "This post could not be found."}
           </Text>
         ) : (
           <ScrollView
             style={styles.contentScroll}
-            contentContainerStyle={styles.content}
+            contentContainerStyle={[
+              styles.content,
+              postColor ? { backgroundColor: postColor } : null,
+            ]}
           >
             <View style={styles.authorRow}>
               <Image
-                source={post.author.profilePicUrl
-                  ? { uri: post.author.profilePicUrl }
-                  : require('@/assets/images/placeholder/jet-the-hmmmawk.png')}
+                source={
+                  post.author.profilePicUrl
+                    ? { uri: post.author.profilePicUrl }
+                    : require("@/assets/images/placeholder/jet-the-hmmmawk.png")
+                }
                 style={styles.avatar}
               />
               <View style={styles.authorInfo}>
@@ -107,20 +123,33 @@ export default function PostDetail() {
                   {post.author.displayName || post.author.username}
                 </Text>
                 <Text style={styles.date}>
-                  {postDate?.toLocaleDateString()} · {postDate?.toLocaleTimeString([], {
-                    hour: 'numeric',
-                    minute: '2-digit',
+                  {postDate?.toLocaleDateString()} ·{" "}
+                  {postDate?.toLocaleTimeString([], {
+                    hour: "numeric",
+                    minute: "2-digit",
                   })}
                 </Text>
               </View>
             </View>
 
-            {!!post.content && <Text style={styles.caption}>{post.content}</Text>}
+            {!!post.content && (
+              <Text style={styles.caption}>{post.content}</Text>
+            )}
+
+            {(post.tags ?? []).length > 0 && (
+              <View style={styles.tags}>
+                {post.tags.map((tag) => (
+                  <Text key={tag.id} style={styles.tag}>
+                    #{tag.name}
+                  </Text>
+                ))}
+              </View>
+            )}
 
             {post.media.length > 0 && (
               <View style={styles.mediaGrid}>
-                {post.media.map((media) => (
-                  media.type === 'image' ? (
+                {post.media.map((media) =>
+                  media.type === "image" ? (
                     <Pressable
                       key={media.id}
                       accessibilityRole="button"
@@ -128,7 +157,11 @@ export default function PostDetail() {
                       onPress={() => setActiveMedia(media)}
                       style={styles.mediaTile}
                     >
-                      <Image source={getMediaSource(media, token)} style={styles.thumbnail} resizeMode="cover" />
+                      <Image
+                        source={getMediaSource(media, token)}
+                        style={styles.thumbnail}
+                        resizeMode="cover"
+                      />
                     </Pressable>
                   ) : (
                     <View key={media.id} style={styles.mediaTile}>
@@ -138,32 +171,43 @@ export default function PostDetail() {
                         contentFit="cover"
                       />
                     </View>
-                  )
-                ))}
+                  ),
+                )}
               </View>
             )}
 
             {!!post.link && (
               <Pressable
                 accessibilityRole="link"
-                onPress={() => Linking.openURL(post.link).catch(() => setError('Could not open this link.'))}
+                onPress={() =>
+                  Linking.openURL(post.link).catch(() =>
+                    setError("Could not open this link."),
+                  )
+                }
               >
                 <Text style={styles.link}>{post.link}</Text>
               </Pressable>
             )}
 
             {!!post.weather && (
-              <Text accessibilityLabel={`Weather: ${getWeatherOption(post.weather).label}`} style={styles.weather}>
+              <Text
+                accessibilityLabel={`Weather: ${getWeatherOption(post.weather).label}`}
+                style={styles.weather}
+              >
                 {getWeatherOption(post.weather).emoji}
               </Text>
             )}
 
-            {Object.entries(post.reactionCounts ?? {}).some(([, count]) => count > 0) && (
+            {Object.entries(post.reactionCounts ?? {}).some(
+              ([, count]) => count > 0,
+            ) && (
               <View style={styles.reactions}>
                 {Object.entries(post.reactionCounts)
                   .filter(([, count]) => count > 0)
                   .map(([emoji, count]) => (
-                    <Text key={emoji} style={styles.reaction}>{emoji} {count}</Text>
+                    <Text key={emoji} style={styles.reaction}>
+                      {emoji} {count}
+                    </Text>
                   ))}
               </View>
             )}
@@ -185,7 +229,7 @@ export default function PostDetail() {
             >
               <Text style={styles.viewerCloseText}>×</Text>
             </Pressable>
-            {activeMedia?.type === 'image' && (
+            {activeMedia?.type === "image" && (
               <Image
                 source={getMediaSource(activeMedia, token)}
                 style={{ width: width, height: height * 0.85 }}
@@ -204,15 +248,15 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    alignSelf: 'stretch',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    alignSelf: "stretch",
   },
   heading: {
     color: Colors.heading,
     fontSize: 22,
-    fontWeight: '700',
+    fontWeight: "700",
   },
   headerSpacer: {
     width: 32,
@@ -222,8 +266,8 @@ const styles = StyleSheet.create({
   },
   contentScroll: {
     flex: 1,
-    alignSelf: 'stretch',
-    width: '100%',
+    alignSelf: "stretch",
+    width: "100%",
   },
   message: {
     color: Colors.interface.text,
@@ -231,7 +275,7 @@ const styles = StyleSheet.create({
   },
   content: {
     flexGrow: 1,
-    alignSelf: 'stretch',
+    alignSelf: "stretch",
     gap: 16,
     padding: 14,
     paddingBottom: 32,
@@ -240,8 +284,8 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.box.background,
   },
   authorRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 10,
   },
   avatar: {
@@ -255,43 +299,43 @@ const styles = StyleSheet.create({
   authorName: {
     color: Colors.heading,
     fontSize: 17,
-    fontWeight: '700',
+    fontWeight: "700",
   },
   date: {
     color: Colors.interface.text,
     fontSize: 13,
   },
   caption: {
-    color: '#000000',
+    color: "#000000",
     fontSize: 17,
     lineHeight: 25,
   },
   mediaGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+    flexDirection: "row",
+    flexWrap: "wrap",
     gap: 8,
   },
   mediaTile: {
-    width: '48%',
+    width: "48%",
     aspectRatio: 1,
-    position: 'relative',
-    overflow: 'hidden',
-    backgroundColor: '#202020',
+    position: "relative",
+    overflow: "hidden",
+    backgroundColor: "#202020",
   },
   thumbnail: {
-    width: '100%',
-    height: '100%',
+    width: "100%",
+    height: "100%",
   },
   link: {
     color: Colors.textLink,
-    textDecorationLine: 'underline',
+    textDecorationLine: "underline",
   },
   weather: {
     fontSize: 28,
   },
   reactions: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+    flexDirection: "row",
+    flexWrap: "wrap",
     gap: 8,
   },
   reaction: {
@@ -300,25 +344,34 @@ const styles = StyleSheet.create({
   },
   viewer: {
     flex: 1,
-    backgroundColor: '#000000',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "#000000",
+    justifyContent: "center",
+    alignItems: "center",
   },
   viewerClose: {
-    position: 'absolute',
+    position: "absolute",
     zIndex: 2,
     top: 48,
     right: 16,
     width: 44,
     height: 44,
     borderRadius: 22,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(0,0,0,0.65)',
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(0,0,0,0.65)",
   },
   viewerCloseText: {
-    color: '#FFFFFF',
+    color: "#FFFFFF",
     fontSize: 34,
     lineHeight: 38,
+  },
+  tags: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 6,
+  },
+  tag: {
+    color: Colors.interface.text,
+    fontSize: 15,
   },
 });
