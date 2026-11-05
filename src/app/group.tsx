@@ -213,6 +213,12 @@ export default function Group() {
                     reactionCounts={post.reactionCounts ?? {}}
                     myReactions={post.myReactions ?? []}
                     commentNum={0}
+                    onOpenPress={() =>
+                      router.push({
+                        pathname: "/post/[postId]",
+                        params: { postId: String(post.id) },
+                      })
+                    }
                     isOwnPost={post.author.id === user?.id}
                     onReact={async (emoji) => {
                       if (!token)

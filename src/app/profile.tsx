@@ -253,6 +253,12 @@ export default function Profile() {
                     tags={[]}
                     emojiReacts={[]}
                     commentNum={0}
+                    onOpenPress={() =>
+                      router.push({
+                        pathname: "/post/[postId]",
+                        params: { postId: String(post.id) },
+                      })
+                    }
                     isOwnPost
                     onDelete={() => deletePost(post.id)}
                     onEditPress={() =>

@@ -22,6 +22,7 @@ export type TimelinePostProps = ViewProps & {
   isOwnPost?: boolean,
   onDelete?: () => Promise<void>,
   onEditPress?: () => void,
+  onOpenPress?: () => void,
   media?: Media[],
   link?: string,
   weather?: string,
@@ -31,7 +32,7 @@ export type TimelinePostProps = ViewProps & {
   onReact?: (emoji: string) => Promise<void>,
 };
 
-export function TimelinePost({date, startOfDate, userIcon, excerpt, tags, emojiReacts, commentNum, isOwnPost = false, onDelete, onEditPress, media = [], link = '', weather = '', reactionEmojis = [], reactionCounts = {}, myReactions = [], onReact} : TimelinePostProps) {
+export function TimelinePost({date, startOfDate, userIcon, excerpt, tags, emojiReacts, commentNum, isOwnPost = false, onDelete, onEditPress, onOpenPress, media = [], link = '', weather = '', reactionEmojis = [], reactionCounts = {}, myReactions = [], onReact} : TimelinePostProps) {
     const [showMoreActions, setShowMoreActions] = useState(false);
     const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
@@ -39,6 +40,8 @@ export function TimelinePost({date, startOfDate, userIcon, excerpt, tags, emojiR
     const [reactionError, setReactionError] = useState<string | null>(null);
     const dateLabel = date.toLocaleString('en-US', {month: 'short', day: 'numeric'});
     const timeLabel = date.toLocaleString('en-US', {hour12: true, hour: 'numeric', minute: '2-digit'});
+    const [posterName, ...excerptLines] = excerpt.split('\n');
+    const postContent = excerptLines.join('\n');
 
     async function handleReactionSelect(emoji: string) {
         if (!onReact) return;
@@ -74,13 +77,22 @@ export function TimelinePost({date, startOfDate, userIcon, excerpt, tags, emojiR
             </View>
             <WhiteBox style={styles.post}>
                 <View style={styles.postRow1}>
-                    <Image
-                        source={userIcon}
-                        style={styles.postUserIcon}
-                    />
-                    <Text style={styles.postText}>
-                        {excerpt}
-                    </Text>
+                    <Pressable
+                        accessibilityRole={onOpenPress ? 'button' : undefined}
+                        accessibilityLabel={onOpenPress ? 'Open post details' : undefined}
+                        disabled={!onOpenPress}
+                        onPress={onOpenPress}
+                        style={styles.postIdentity}
+                    >
+                        <Image
+                            source={userIcon}
+                            style={styles.postUserIcon}
+                        />
+                        <Text style={styles.postText}>
+                            <Text style={styles.posterName}>{posterName}</Text>
+                            {postContent ? `\n${postContent}` : ''}
+                        </Text>
+                    </Pressable>
                     {isOwnPost && (onDelete || onEditPress) && (
                         <Pressable
                             accessibilityRole="button"
@@ -281,6 +293,12 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     gap: 10
   },
+  postIdentity: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+  },
   moreActions: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
@@ -360,6 +378,10 @@ const styles = StyleSheet.create({
   postText: {
     fontSize: 14,
     flex: 1
+  },
+  posterName: {
+    color: Colors.heading,
+    fontWeight: '700',
   },
   postUserIcon: {
     width: 32,
