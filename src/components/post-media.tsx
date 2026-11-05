@@ -1,5 +1,7 @@
-import { useVideoPlayer, VideoView, type VideoSource } from 'expo-video';
-import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useVideoPlayer, VideoView, type VideoContentFit, type VideoSource, type VideoThumbnail } from 'expo-video';
+import { useRef, useState } from 'react';
+import { Image, Pressable, ScrollView, StyleSheet, Text, View, type StyleProp, type ViewStyle, Platform } from 'react-native';
+import { Image as ExpoImage } from 'expo-image';
 
 import { API_URL } from '@/constants/api';
 import { Colors } from '@/constants/theme';
@@ -11,9 +13,74 @@ type MediaItem = {
   url: string;
 };
 
-function PostVideo({ source, compact }: { source: VideoSource; compact: boolean }) {
+export function PostVideo({ source, compact = false, tapToFullscreen = false, contentFit, style }: { source: VideoSource; compact?: boolean; tapToFullscreen?: boolean; contentFit?: VideoContentFit; style?: StyleProp<ViewStyle> }) {
   const player = useVideoPlayer(source);
-  return <VideoView player={player} style={[styles.video, compact && styles.previewMedia]} nativeControls />;
+  const videoView = useRef<VideoView | null>(null);
+  const thumbnailRequested = useRef(false);
+  const [thumbnail, setThumbnail] = useState<VideoThumbnail | null>(null);
+
+  async function playFullscreen() {
+    try {
+      await videoView.current?.enterFullscreen();
+      player.play();
+    } catch {
+      // Leave playback paused if fullscreen could not be opened.
+    }
+  }
+
+  function captureThumbnail() {
+    if (!tapToFullscreen || Platform.OS === 'web' || thumbnailRequested.current) return;
+    thumbnailRequested.current = true;
+    player.generateThumbnailsAsync(0.1, { maxWidth: 640, maxHeight: 640 })
+      .then(([frame]) => {
+        if (frame) setThumbnail(frame);
+      })
+      .catch(() => {
+        thumbnailRequested.current = false;
+      });
+  }
+
+  const video = (
+    <VideoView
+      ref={videoView}
+      player={player}
+      style={tapToFullscreen ? StyleSheet.absoluteFill : [styles.video, compact && styles.previewMedia, style]}
+      contentFit={contentFit}
+      nativeControls
+      pointerEvents={tapToFullscreen ? 'none' : undefined}
+      surfaceType={Platform.OS === 'android' ? 'textureView' : undefined}
+      fullscreenOptions={{ enable: true }}
+      onFirstFrameRender={tapToFullscreen ? captureThumbnail : undefined}
+      onFullscreenExit={() => {
+        if (tapToFullscreen) player.pause();
+      }}
+    />
+  );
+
+  if (!tapToFullscreen) return video;
+
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel="Play video fullscreen"
+      onPress={playFullscreen}
+      style={[styles.fullscreenVideoTile, compact && styles.previewMedia, style]}
+    >
+      {video}
+      {thumbnail && (
+        <ExpoImage
+          pointerEvents="none"
+          source={thumbnail}
+          style={styles.fullscreenVideoThumbnail}
+          contentFit="cover"
+          contentPosition="center"
+        />
+      )}
+      <View pointerEvents="none" style={styles.fullscreenPlayOverlay}>
+        <Text style={styles.fullscreenPlayIcon}>▶</Text>
+      </View>
+    </Pressable>
+  );
 }
 
 export function PostMedia({ media, onRemove, compact = false }: {
@@ -86,6 +153,28 @@ const styles = StyleSheet.create({
   video: {
     width: '100%',
     aspectRatio: 16 / 9,
+  },
+  fullscreenVideoTile: {
+    width: '100%',
+    height: '100%',
+    position: 'relative',
+    overflow: 'hidden',
+  },
+  fullscreenVideoThumbnail: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 2,
+    elevation: 2,
+  },
+  fullscreenPlayOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 3,
+    elevation: 3,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  fullscreenPlayIcon: {
+    color: '#FFFFFF',
+    fontSize: 42,
   },
   remove: {
     alignSelf: 'flex-end',
